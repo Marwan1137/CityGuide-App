@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:city_guide_app/core/api/api_manager.dart';
 import 'package:city_guide_app/core/api/api_result.dart';
 import 'package:city_guide_app/core/config/app_config.dart';
@@ -5,6 +7,8 @@ import 'package:city_guide_app/core/services/supabase_session_service.dart';
 import 'package:city_guide_app/features/explorer/data/data_source_impl/remote_nearby_places_datasource_impl.dart';
 import 'package:city_guide_app/features/explorer/data/model/nearby_search_request_model.dart';
 import 'package:city_guide_app/features/explorer/data/model/place_model.dart';
+import 'package:city_guide_app/features/explorer/domain/entity/search_request_cancellation.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -31,6 +35,8 @@ void main() {
     radiusMeters: 3000,
     maxResults: 20,
   );
+
+  setUpAll(() => registerFallbackValue(CancelToken()));
 
   setUp(() {
     apiManager = _MockApiManager();
@@ -170,5 +176,34 @@ void main() {
       (timeout as ApiFailure<List<PlaceModel>>).error.message,
       contains('too long'),
     );
+  });
+
+  test('forwards domain cancellation to the active Dio request', () async {
+    when(
+      () => apiManager.post(
+        any(),
+        data: any(named: 'data'),
+        headers: any(named: 'headers'),
+        cancelToken: any(named: 'cancelToken'),
+      ),
+    ).thenAnswer((_) => Completer<ApiResult<Map<String, dynamic>>>().future);
+    final cancellation = SearchRequestCancellation();
+
+    unawaited(datasource.searchNearby(request, cancellation: cancellation));
+    await Future<void>.delayed(Duration.zero);
+    final token =
+        verify(
+              () => apiManager.post(
+                any(),
+                data: any(named: 'data'),
+                headers: any(named: 'headers'),
+                cancelToken: captureAny(named: 'cancelToken'),
+              ),
+            ).captured.single
+            as CancelToken;
+
+    cancellation.cancel();
+
+    expect(token.isCancelled, isTrue);
   });
 }

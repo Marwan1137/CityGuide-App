@@ -1,4 +1,5 @@
 import 'package:city_guide_app/features/explorer/presentation/view_model/explorer_state.dart';
+import 'package:city_guide_app/shared/domain/geo_point.dart';
 import 'package:city_guide_app/shared/domain/place_category.dart';
 import 'package:city_guide_app/shared/domain/place_summary.dart';
 import 'package:flutter/material.dart';
@@ -8,13 +9,13 @@ class GoogleExplorerMap extends StatefulWidget {
   const GoogleExplorerMap({
     required this.state,
     required this.onPlaceSelected,
-    required this.onZoomChanged,
+    required this.onCameraIdle,
     super.key,
   });
 
   final ExplorerLoaded state;
   final ValueChanged<String> onPlaceSelected;
-  final ValueChanged<double> onZoomChanged;
+  final void Function(GeoPoint target, double zoom) onCameraIdle;
 
   @override
   State<GoogleExplorerMap> createState() => _GoogleExplorerMapState();
@@ -22,11 +23,13 @@ class GoogleExplorerMap extends StatefulWidget {
 
 class _GoogleExplorerMapState extends State<GoogleExplorerMap> {
   late double _latestZoom;
+  late GeoPoint _latestTarget;
 
   @override
   void initState() {
     super.initState();
     _latestZoom = widget.state.zoom;
+    _latestTarget = widget.state.searchCenter.point;
   }
 
   @override
@@ -44,8 +47,14 @@ class _GoogleExplorerMapState extends State<GoogleExplorerMap> {
       myLocationButtonEnabled: false,
       rotateGesturesEnabled: false,
       zoomControlsEnabled: false,
-      onCameraMove: (position) => _latestZoom = position.zoom,
-      onCameraIdle: () => widget.onZoomChanged(_latestZoom),
+      onCameraMove: (position) {
+        _latestZoom = position.zoom;
+        _latestTarget = GeoPoint(
+          latitude: position.target.latitude,
+          longitude: position.target.longitude,
+        );
+      },
+      onCameraIdle: () => widget.onCameraIdle(_latestTarget, _latestZoom),
     );
   }
 

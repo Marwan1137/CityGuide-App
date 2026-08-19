@@ -22,9 +22,13 @@ class NearbyPlacesRepoImpl implements NearbyPlacesRepo {
   Future<AppResult<List<PlaceSummary>>> searchNearby(
     NearbySearchRequest request,
   ) async {
-    final result = await _datasource.searchNearby(
-      NearbySearchRequestModel.fromEntity(request),
-    );
+    final requestModel = NearbySearchRequestModel.fromEntity(request);
+    final result = request.cancellation == null
+        ? await _datasource.searchNearby(requestModel)
+        : await _datasource.searchNearby(
+            requestModel,
+            cancellation: request.cancellation,
+          );
     return result.fold(
       onSuccess: (models) => Success(
         models

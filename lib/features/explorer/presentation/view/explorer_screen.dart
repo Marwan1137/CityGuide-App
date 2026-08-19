@@ -3,7 +3,9 @@ import 'package:city_guide_app/features/explorer/presentation/view_model/explore
 import 'package:city_guide_app/features/explorer/presentation/widgets/explorer_filter_sheet.dart';
 import 'package:city_guide_app/features/explorer/presentation/widgets/explorer_list_content.dart';
 import 'package:city_guide_app/features/explorer/presentation/widgets/explorer_map_content.dart';
+import 'package:city_guide_app/features/explorer/presentation/widgets/explorer_refresh_error_banner.dart';
 import 'package:city_guide_app/features/explorer/presentation/widgets/google_explorer_map.dart';
+import 'package:city_guide_app/shared/domain/geo_point.dart';
 import 'package:city_guide_app/shared/widgets/friendly_error_view.dart';
 import 'package:city_guide_app/shared/widgets/loading_view.dart';
 import 'package:city_guide_app/shared/widgets/navigation_shell.dart';
@@ -48,7 +50,8 @@ class ExplorerScreen extends StatelessWidget {
                             onPlaceSelected: cubit.selectPlace,
                             onShowList: () =>
                                 cubit.changeViewMode(ExplorerViewMode.list),
-                            onZoomChanged: cubit.updateZoom,
+                            onCameraIdle: cubit.onCameraIdle,
+                            onSearchThisArea: cubit.searchThisArea,
                             onOpenFilters: () =>
                                 _showFilters(context, state, cubit),
                             onChooseCity: onChooseCity,
@@ -70,6 +73,15 @@ class ExplorerScreen extends StatelessWidget {
                       alignment: Alignment.topCenter,
                       child: LinearProgressIndicator(
                         key: Key('explorer-filter-refreshing'),
+                      ),
+                    ),
+                  if (state.refreshErrorMessage case final message?)
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: ExplorerRefreshErrorBanner(
+                        message: message,
+                        onRetry: cubit.retryRefresh,
+                        onDismiss: cubit.dismissRefreshError,
                       ),
                     ),
                 ],
@@ -96,11 +108,11 @@ class ExplorerScreen extends StatelessWidget {
     BuildContext context,
     ExplorerLoaded state,
     ValueChanged<String> onPlaceSelected,
-    ValueChanged<double> onZoomChanged,
+    void Function(GeoPoint target, double zoom) onCameraIdle,
   ) => GoogleExplorerMap(
     state: state,
     onPlaceSelected: onPlaceSelected,
-    onZoomChanged: onZoomChanged,
+    onCameraIdle: onCameraIdle,
   );
 
   static void _onDestinationSelected(int index, VoidCallback onChooseCity) {

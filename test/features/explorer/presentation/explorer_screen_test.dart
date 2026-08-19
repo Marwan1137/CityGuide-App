@@ -21,6 +21,9 @@ void main() {
   setUpAll(() {
     registerFallbackValue(ExplorerViewMode.map);
     registerFallbackValue(PlaceCategory.cafe);
+    registerFallbackValue(
+      const GeoPoint(latitude: 30.0444, longitude: 31.2357),
+    );
   });
 
   const center = SearchCenter(
@@ -52,10 +55,14 @@ void main() {
     when(() => cubit.selectPlaceFromList(any())).thenReturn(null);
     when(() => cubit.changeViewMode(any())).thenReturn(null);
     when(() => cubit.updateZoom(any())).thenReturn(null);
+    when(() => cubit.onCameraIdle(any(), any())).thenReturn(null);
     when(() => cubit.updateListScrollOffset(any())).thenReturn(null);
     when(() => cubit.changeCategory(any())).thenAnswer((_) async {});
     when(() => cubit.changeRadius(any())).thenAnswer((_) async {});
     when(() => cubit.resetFilters()).thenAnswer((_) async {});
+    when(() => cubit.searchThisArea()).thenAnswer((_) async {});
+    when(() => cubit.retryRefresh()).thenAnswer((_) async {});
+    when(() => cubit.dismissRefreshError()).thenReturn(null);
   });
 
   Widget buildScreen(ExplorerState state) {
@@ -284,5 +291,50 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const Key('explorer-filter-refreshing')), findsOneWidget);
+  });
+
+  testWidgets('search-this-area action appears only for a pending center', (
+    tester,
+  ) async {
+    const pendingCenter = SearchCenter(
+      point: GeoPoint(latitude: 30.08, longitude: 31.28),
+      source: SearchCenterSource.map,
+      label: 'this map area',
+    );
+    await tester.pumpWidget(
+      buildScreen(
+        const ExplorerLoaded(
+          searchCenter: center,
+          allPlaces: [place],
+          pendingSearchCenter: pendingCenter,
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('search-this-area-button')));
+
+    verify(() => cubit.searchThisArea()).called(1);
+  });
+
+  testWidgets('recoverable refresh error keeps results and offers actions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildScreen(
+        const ExplorerLoaded(
+          searchCenter: center,
+          allPlaces: [place],
+          selectedPlaceId: 'place-1',
+          refreshErrorMessage: 'Connection interrupted.',
+        ),
+      ),
+    );
+
+    expect(find.text('Cairo Coffee'), findsOneWidget);
+    expect(find.text('Connection interrupted.'), findsOneWidget);
+    await tester.tap(find.text('Retry'));
+    verify(() => cubit.retryRefresh()).called(1);
+    await tester.tap(find.byKey(const Key('dismiss-refresh-error')));
+    verify(() => cubit.dismissRefreshError()).called(1);
   });
 }

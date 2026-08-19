@@ -27,6 +27,8 @@ final class ExplorerLoaded extends ExplorerState {
     this.zoom = 14,
     this.listScrollOffset = 0,
     this.filters = const ExplorerFilters(),
+    this.pendingSearchCenter,
+    this.refreshErrorMessage,
   }) : filteredPlaces = filteredPlaces ?? allPlaces;
 
   final SearchCenter searchCenter;
@@ -38,6 +40,10 @@ final class ExplorerLoaded extends ExplorerState {
   final double zoom;
   final double listScrollOffset;
   final ExplorerFilters filters;
+  final SearchCenter? pendingSearchCenter;
+  final String? refreshErrorMessage;
+
+  bool get canSearchThisArea => pendingSearchCenter != null;
 
   List<PlaceSummary> get places => filteredPlaces;
 
@@ -47,6 +53,38 @@ final class ExplorerLoaded extends ExplorerState {
     }
     return null;
   }
+
+  ExplorerLoaded copyWith({
+    SearchCenter? searchCenter,
+    List<PlaceSummary>? allPlaces,
+    List<PlaceSummary>? filteredPlaces,
+    Object? selectedPlaceId = _unchanged,
+    bool? isRefreshing,
+    ExplorerViewMode? viewMode,
+    double? zoom,
+    double? listScrollOffset,
+    ExplorerFilters? filters,
+    Object? pendingSearchCenter = _unchanged,
+    Object? refreshErrorMessage = _unchanged,
+  }) => ExplorerLoaded(
+    searchCenter: searchCenter ?? this.searchCenter,
+    allPlaces: allPlaces ?? this.allPlaces,
+    filteredPlaces: filteredPlaces ?? this.filteredPlaces,
+    selectedPlaceId: identical(selectedPlaceId, _unchanged)
+        ? this.selectedPlaceId
+        : selectedPlaceId as String?,
+    isRefreshing: isRefreshing ?? this.isRefreshing,
+    viewMode: viewMode ?? this.viewMode,
+    zoom: zoom ?? this.zoom,
+    listScrollOffset: listScrollOffset ?? this.listScrollOffset,
+    filters: filters ?? this.filters,
+    pendingSearchCenter: identical(pendingSearchCenter, _unchanged)
+        ? this.pendingSearchCenter
+        : pendingSearchCenter as SearchCenter?,
+    refreshErrorMessage: identical(refreshErrorMessage, _unchanged)
+        ? this.refreshErrorMessage
+        : refreshErrorMessage as String?,
+  );
 
   @override
   List<Object?> get props => [
@@ -59,8 +97,12 @@ final class ExplorerLoaded extends ExplorerState {
     zoom,
     listScrollOffset,
     filters,
+    pendingSearchCenter,
+    refreshErrorMessage,
   ];
 }
+
+const _unchanged = Object();
 
 final class ExplorerError extends ExplorerState {
   const ExplorerError({

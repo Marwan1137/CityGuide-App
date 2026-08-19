@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:city_guide_app/core/error/failure.dart';
 import 'package:city_guide_app/core/utils/app_result.dart';
@@ -423,4 +425,161 @@ void main() {
       verify(() => repo.searchNearby(any())).called(1);
     },
   );
+
+  test('camera movement makes zero requests until explicit search', () async {
+    when(
+      () => repo.searchNearby(any()),
+    ).thenAnswer((_) async => const Success([place]));
+    final cubit = buildCubit();
+    await cubit.initialize(center);
+    clearInteractions(repo);
+
+    cubit.onCameraIdle(const GeoPoint(latitude: 30.07, longitude: 31.27), 15);
+    cubit.onCameraIdle(const GeoPoint(latitude: 30.08, longitude: 31.28), 15.5);
+
+    final loaded = cubit.state as ExplorerLoaded;
+    expect(
+      loaded.pendingSearchCenter?.point,
+      const GeoPoint(latitude: 30.08, longitude: 31.28),
+    );
+    verifyNever(() => repo.searchNearby(any()));
+    await cubit.close();
+  });
+
+  test(
+    'explicit search makes one request and accepts the map center',
+    () async {
+      var call = 0;
+      when(() => repo.searchNearby(any())).thenAnswer((_) async {
+        call++;
+        return call == 1
+            ? const Success([place])
+            : const Success([secondPlace]);
+      });
+      final cubit = buildCubit();
+      await cubit.initialize(center);
+      clearInteractions(repo);
+      const mapPoint = GeoPoint(latitude: 30.08, longitude: 31.28);
+      cubit.onCameraIdle(mapPoint, 15);
+
+      await cubit.searchThisArea();
+
+      final captured = verify(() => repo.searchNearby(captureAny())).captured;
+      expect(captured, hasLength(1));
+      expect((captured.single as NearbySearchRequest).center, mapPoint);
+      final loaded = cubit.state as ExplorerLoaded;
+      expect(loaded.searchCenter.point, mapPoint);
+      expect(loaded.pendingSearchCenter, isNull);
+      expect(loaded.allPlaces, const [secondPlace]);
+      await cubit.close();
+    },
+  );
+
+  test(
+    'new map search cancels the previous request and rejects stale data',
+    () async {
+      final firstResult = Completer<AppResult<List<PlaceSummary>>>();
+      final secondResult = Completer<AppResult<List<PlaceSummary>>>();
+      final requests = <NearbySearchRequest>[];
+      when(() => repo.searchNearby(any())).thenAnswer((invocation) {
+        final request =
+            invocation.positionalArguments.single as NearbySearchRequest;
+        requests.add(request);
+        if (requests.length == 1) {
+          return Future.value(const Success([place]));
+        }
+        return requests.length == 2 ? firstResult.future : secondResult.future;
+      });
+      final cubit = buildCubit();
+      await cubit.initialize(center);
+
+      const firstPoint = GeoPoint(latitude: 30.07, longitude: 31.27);
+      cubit.onCameraIdle(firstPoint, 15);
+      final firstSearch = cubit.searchThisArea();
+      await Future<void>.delayed(Duration.zero);
+
+      const latestPoint = GeoPoint(latitude: 30.09, longitude: 31.29);
+      cubit.onCameraIdle(latestPoint, 15.5);
+      final latestSearch = cubit.searchThisArea();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(requests[1].cancellation?.isCancelled, isTrue);
+      secondResult.complete(const Success([secondPlace]));
+      await latestSearch;
+      firstResult.complete(const Success([restaurant]));
+      await firstSearch;
+
+      final loaded = cubit.state as ExplorerLoaded;
+      expect(loaded.searchCenter.point, latestPoint);
+      expect(loaded.allPlaces, const [secondPlace]);
+      await cubit.close();
+    },
+  );
+
+  test(
+    'refresh failure retains places and exposes a recoverable message',
+    () async {
+      var call = 0;
+      when(() => repo.searchNearby(any())).thenAnswer((_) async {
+        call++;
+        return call == 1
+            ? const Success([place])
+            : const Error<List<PlaceSummary>>(
+                NetworkFailure('Connection interrupted.'),
+              );
+      });
+      final cubit = buildCubit();
+      await cubit.initialize(center);
+      cubit.onCameraIdle(const GeoPoint(latitude: 30.08, longitude: 31.28), 15);
+
+      await cubit.searchThisArea();
+
+      final loaded = cubit.state as ExplorerLoaded;
+      expect(loaded.allPlaces, const [place]);
+      expect(loaded.searchCenter, center);
+      expect(loaded.pendingSearchCenter, isNotNull);
+      expect(loaded.refreshErrorMessage, 'Connection interrupted.');
+      expect(loaded.isRefreshing, isFalse);
+      await cubit.close();
+    },
+  );
+
+  test('rapid filter changes cancel and ignore the older response', () async {
+    final firstResult = Completer<AppResult<List<PlaceSummary>>>();
+    final secondResult = Completer<AppResult<List<PlaceSummary>>>();
+    final requests = <NearbySearchRequest>[];
+    when(() => repo.searchNearby(any())).thenAnswer((invocation) {
+      final request =
+          invocation.positionalArguments.single as NearbySearchRequest;
+      requests.add(request);
+      if (requests.length == 1) {
+        return Future.value(const Success([place]));
+      }
+      return requests.length == 2 ? firstResult.future : secondResult.future;
+    });
+    final cubit = buildCubit();
+    await cubit.initialize(center);
+
+    final categoryChange = cubit.changeCategory(PlaceCategory.restaurant);
+    await Future<void>.delayed(Duration.zero);
+    final radiusChange = cubit.changeRadius(5000);
+    await Future<void>.delayed(Duration.zero);
+
+    expect(requests[1].cancellation?.isCancelled, isTrue);
+    secondResult.complete(const Success([restaurant]));
+    await radiusChange;
+    firstResult.complete(const Success([secondPlace]));
+    await categoryChange;
+
+    final loaded = cubit.state as ExplorerLoaded;
+    expect(
+      loaded.filters,
+      const ExplorerFilters(
+        category: PlaceCategory.restaurant,
+        radiusMeters: 5000,
+      ),
+    );
+    expect(loaded.allPlaces, const [restaurant]);
+    await cubit.close();
+  });
 }

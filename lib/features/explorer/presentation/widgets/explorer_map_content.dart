@@ -1,5 +1,6 @@
 import 'package:city_guide_app/features/explorer/presentation/view_model/explorer_state.dart';
 import 'package:city_guide_app/features/explorer/presentation/widgets/place_quick_preview.dart';
+import 'package:city_guide_app/shared/domain/geo_point.dart';
 import 'package:city_guide_app/shared/domain/place_category.dart';
 import 'package:city_guide_app/shared/widgets/empty_state_view.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +10,7 @@ typedef ExplorerMapBuilder =
       BuildContext context,
       ExplorerLoaded state,
       ValueChanged<String> onPlaceSelected,
-      ValueChanged<double> onZoomChanged,
+      void Function(GeoPoint target, double zoom) onCameraIdle,
     );
 
 class ExplorerMapContent extends StatelessWidget {
@@ -18,7 +19,8 @@ class ExplorerMapContent extends StatelessWidget {
     required this.mapBuilder,
     required this.onPlaceSelected,
     required this.onShowList,
-    required this.onZoomChanged,
+    required this.onCameraIdle,
+    required this.onSearchThisArea,
     required this.onOpenFilters,
     required this.onChooseCity,
     super.key,
@@ -28,7 +30,8 @@ class ExplorerMapContent extends StatelessWidget {
   final ExplorerMapBuilder mapBuilder;
   final ValueChanged<String> onPlaceSelected;
   final VoidCallback onShowList;
-  final ValueChanged<double> onZoomChanged;
+  final void Function(GeoPoint target, double zoom) onCameraIdle;
+  final VoidCallback onSearchThisArea;
   final VoidCallback onOpenFilters;
   final VoidCallback onChooseCity;
 
@@ -39,7 +42,7 @@ class ExplorerMapContent extends StatelessWidget {
     return Stack(
       children: [
         Positioned.fill(
-          child: mapBuilder(context, state, onPlaceSelected, onZoomChanged),
+          child: mapBuilder(context, state, onPlaceSelected, onCameraIdle),
         ),
         Positioned(
           top: 0,
@@ -48,6 +51,20 @@ class ExplorerMapContent extends StatelessWidget {
           height: topInset + 64,
           child: _ExplorerHeader(topInset: topInset),
         ),
+        if (state.canSearchThisArea)
+          Positioned(
+            top: topInset + 188,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: FilledButton.icon(
+                key: const Key('search-this-area-button'),
+                onPressed: state.isRefreshing ? null : onSearchThisArea,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Search this area'),
+              ),
+            ),
+          ),
         Positioned(
           top: topInset + 76,
           left: 16,

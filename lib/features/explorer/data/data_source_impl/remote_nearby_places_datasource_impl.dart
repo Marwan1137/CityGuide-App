@@ -5,6 +5,8 @@ import 'package:city_guide_app/core/services/supabase_session_service.dart';
 import 'package:city_guide_app/features/explorer/data/data_source_contract/nearby_places_datasource.dart';
 import 'package:city_guide_app/features/explorer/data/model/nearby_search_request_model.dart';
 import 'package:city_guide_app/features/explorer/data/model/place_model.dart';
+import 'package:city_guide_app/features/explorer/domain/entity/search_request_cancellation.dart';
+import 'package:dio/dio.dart';
 import 'package:injectable/injectable.dart';
 
 @LazySingleton(as: NearbyPlacesDatasource)
@@ -21,8 +23,9 @@ class RemoteNearbyPlacesDatasourceImpl implements NearbyPlacesDatasource {
 
   @override
   Future<ApiResult<List<PlaceModel>>> searchNearby(
-    NearbySearchRequestModel request,
-  ) async {
+    NearbySearchRequestModel request, {
+    SearchRequestCancellation? cancellation,
+  }) async {
     final accessToken = await _sessionService.getAccessToken();
     if (accessToken == null) {
       return const ApiFailure(
@@ -33,15 +36,31 @@ class RemoteNearbyPlacesDatasourceImpl implements NearbyPlacesDatasource {
       );
     }
 
-    final result = await _apiManager.post(
-      '${_config.supabaseUrl}/functions/v1/places-nearby',
-      data: request.toJson(),
-      headers: {
-        'authorization': 'Bearer $accessToken',
-        'apikey': _config.supabasePublishableKey,
-        'content-type': 'application/json',
-      },
-    );
+    final url = '${_config.supabaseUrl}/functions/v1/places-nearby';
+    final headers = {
+      'authorization': 'Bearer $accessToken',
+      'apikey': _config.supabasePublishableKey,
+      'content-type': 'application/json',
+    };
+    final ApiResult<Map<String, dynamic>> result;
+    if (cancellation == null) {
+      result = await _apiManager.post(
+        url,
+        data: request.toJson(),
+        headers: headers,
+      );
+    } else {
+      final cancelToken = CancelToken();
+      cancellation.onCancel(
+        () => cancelToken.cancel('Superseded by a newer nearby search.'),
+      );
+      result = await _apiManager.post(
+        url,
+        data: request.toJson(),
+        headers: headers,
+        cancelToken: cancelToken,
+      );
+    }
 
     return result.fold(
       onSuccess: (json) {
