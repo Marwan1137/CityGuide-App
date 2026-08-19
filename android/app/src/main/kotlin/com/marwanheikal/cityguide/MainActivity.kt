@@ -1,4 +1,4 @@
-package com.example.city_guide_app
+package com.marwanheikal.cityguide
 
 import io.flutter.embedding.android.FlutterActivity
 

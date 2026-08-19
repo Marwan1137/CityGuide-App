@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 /// Performs application-wide initialization before the widget tree is built.
-void bootstrap(FutureOr<Widget> Function() builder) {
-  runZonedGuarded(
+Future<void> bootstrap(FutureOr<Widget> Function() builder) async {
+  await runZonedGuarded(
     () async {
       WidgetsFlutterBinding.ensureInitialized();
 

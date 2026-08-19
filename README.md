@@ -11,7 +11,7 @@ on a focused branch created from an up-to-date `Development` branch.
 ```bash
 git switch Development
 git pull --ff-only
-git switch -c feature/places-discovery
+git switch -c feature/location-permission-matrix
 ```
 
 Open pull requests back into `Development`. Promote tested releases from
@@ -29,12 +29,20 @@ Optional compile-time configuration:
 ```bash
 flutter run \
   --dart-define=APP_ENV=development \
-  --dart-define=API_BASE_URL=https://api.example.com
+  --dart-define=API_BASE_URL=https://api.example.com \
+  --dart-define=SUPABASE_URL=https://your-project.supabase.co \
+  --dart-define=SUPABASE_PUBLISHABLE_KEY=sb_publishable_example
 ```
 
-Never commit API secrets. Mobile application binaries cannot safely hide a
-secret; provider keys must be restricted at the provider level or kept behind a
-backend.
+The connected Supabase URL and client-safe publishable key are configured for
+development and may be overridden with Dart defines. Never put a Supabase
+secret key, Google Places server key, or another privileged credential in the
+mobile application.
+
+Native Google Maps keys are added only immediately before Feature 3 testing.
+Copy `secrets.properties.example` to `secrets.properties` for Android and
+`ios/Flutter/Secrets.xcconfig.example` to
+`ios/Flutter/Secrets.xcconfig` for iOS. Both real files are ignored by Git.
 
 ## Quality checks
 
@@ -61,7 +69,8 @@ lib/
 │   ├── theme/
 │   ├── usecases/
 │   ├── utils/
-│   └── widgets/
+│   └── services/
+├── shared/               # Cross-feature domain primitives and widgets
 └── features/
     └── <feature>/
         ├── data/         # DTOs, data sources, repository implementations

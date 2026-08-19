@@ -1,66 +1,88 @@
-# Architecture
+# CityGuide architecture
 
-## Direction of dependencies
+## Required feature flow
 
-Each feature is split into three layers:
-
-1. **Presentation** owns Flutter UI and state. It calls domain use cases.
-2. **Domain** owns business rules, entities, repository contracts, and use
-   cases. It must not import Flutter or the data layer.
-3. **Data** owns remote/local data sources, DTO mapping, and repository
-   implementations. It depends on domain contracts.
-
-Dependencies point inward: `presentation -> domain <- data`. Shared code belongs
-in `core` only when it is genuinely used by more than one feature.
-
-## Feature template
-
-Create only the folders a feature actually needs:
+Every feature follows this dependency chain:
 
 ```text
-features/places/
-├── data/
-│   ├── data_sources/
-│   ├── models/
-│   └── repositories/
+Cubit -> UseCase -> Repository contract -> Repository implementation
+      -> DataSource contract -> DataSource implementation
+```
+
+Remote features continue through `ApiManager -> ApiExecutor -> ApiResult`.
+Domain code never imports Flutter, provider SDKs, DTOs, or data-layer code.
+Data models are mapped to domain entities inside repository implementations.
+Data sources return `ApiResult<Dto>` and repositories return
+`AppResult<Entity>`. Provider exceptions must be converted before crossing a
+layer boundary.
+
+Cubits expose direct methods; the project does not use MVI or intent classes.
+Each screen explicitly renders loading, loaded, and friendly error states.
+Permission denial and disabled-service states are recoverable loaded outcomes.
+
+## Feature layout
+
+```text
+features/<feature>/
 ├── domain/
-│   ├── entities/
-│   ├── repositories/
-│   └── usecases/
+│   ├── entity/
+│   ├── repo_contract/
+│   └── use_cases/
+├── data/
+│   ├── model/
+│   ├── repo_impl/
+│   ├── data_source_contract/
+│   └── data_source_impl/
 └── presentation/
-    ├── pages/
-    ├── state/
+    ├── view_model/
+    ├── view/
     └── widgets/
 ```
 
-Domain repositories return `AppResult<T>` rather than throwing infrastructure
-exceptions into the UI. Data repositories catch provider exceptions and map
-them to typed `Failure` values.
+Cross-feature UI belongs in `lib/shared/widgets`. Cross-feature value objects
+belong in `lib/shared/domain`. Feature-specific provider packages are added on
+the feature branch that first uses them.
 
-## Recommended delivery order
+## Dependency injection
 
-Keep provider choices isolated in their feature branches:
+GetIt is the runtime container and Injectable generates registrations. After
+adding an annotated dependency, run:
 
-1. `feature/app-navigation` — navigation shell and primary destinations.
-2. `feature/places-discovery` — place search and nearby results.
-3. `feature/map` — map provider integration and markers.
-4. `feature/location` — permissions and current-location behavior.
-5. `feature/favorites` — local persistence and saved places.
-6. `feature/place-details` — details, photos, and opening hours.
-7. `feature/itinerary` — route planning and ordered stops.
-8. `feature/auth` — only if synchronized user data is required.
+```bash
+dart run build_runner build --delete-conflicting-outputs
+```
 
-Add dependencies on the branch that first uses them. This keeps `Development`
-small and prevents committing a networking, state-management, database, or map
-SDK before its requirements are clear.
+Generated registration code is committed and checked by CI.
 
-## Configuration and secrets
+## Supabase and network boundaries
 
-`AppConfig` reads non-secret configuration from Dart defines:
+The mobile app uses only the Supabase project URL and client-safe publishable
+key. It reuses a stored session and creates an anonymous user only when no
+session exists. Edge Functions must require a user JWT. Provider server keys
+belong only in Supabase secrets.
 
-- `APP_ENV`: `development`, `staging`, or `production`.
-- `API_BASE_URL`: backend base URL when a backend is introduced.
+Any exposed database table requires explicit grants, RLS, and tested policies.
+Database migrations and Edge Function deployments require approval.
 
-Public mobile SDK keys should be restricted by Android package/signing identity
-and iOS bundle ID. Private provider secrets belong on a backend, never inside the
-Flutter application or a committed environment file.
+HTTP requests use finite timeouts, cancellation tokens where applicable,
+redacted logs, and typed errors. Authorization headers, tokens, API keys, and
+full user-location histories must never be logged.
+
+## Native map keys
+
+Real native key files are ignored:
+
+- `secrets.properties`
+- `ios/Flutter/Secrets.xcconfig`
+
+Tracked `.example` files document their shape. The Android key is restricted to
+`com.marwanheikal.cityguide` plus the signing certificate. The iOS key is
+restricted to the same bundle identifier. The server Places key never enters
+the Flutter repository.
+
+## Branch delivery
+
+Feature branches are named only `feature/<feature-name>` and begin from an
+updated `Development`. Approved features are merged back before the next branch
+is created. Formatting, analysis, unit tests, Cubit tests, and widget tests must
+pass before handoff.

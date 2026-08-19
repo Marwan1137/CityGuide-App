@@ -9,6 +9,8 @@ void main() {
         config: const AppConfig(
           environment: AppEnvironment.development,
           apiBaseUrl: '',
+          supabaseUrl: '',
+          supabasePublishableKey: '',
           enableLogging: true,
         ),
       ),
