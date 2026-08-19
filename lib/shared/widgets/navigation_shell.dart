@@ -24,12 +24,16 @@ class NavigationShell extends StatelessWidget {
           label: 'Explore',
         ),
         NavigationDestination(
-          icon: Icon(Icons.favorite_border),
-          label: 'Favorites',
+          icon: Icon(Icons.search),
+          label: 'Search',
         ),
         NavigationDestination(
           icon: Icon(Icons.add_location_alt_outlined),
-          label: 'Add',
+          label: 'Add Place',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.favorite_border),
+          label: 'Favorites',
         ),
       ],
     ),
