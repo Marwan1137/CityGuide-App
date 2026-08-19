@@ -25,6 +25,8 @@ class ExplorerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       BlocBuilder<ExplorerCubit, ExplorerState>(
+        buildWhen: (previous, current) =>
+            previous is! ExplorerLoaded || current is! ExplorerLoaded,
         builder: (context, state) {
           if (state is ExplorerLoading) {
             return NavigationShell(
@@ -35,57 +37,9 @@ class ExplorerScreen extends StatelessWidget {
             );
           }
           if (state is ExplorerLoaded) {
-            final cubit = context.read<ExplorerCubit>();
-            return NavigationShell(
-              currentIndex: 0,
-              onDestinationSelected: (index) =>
-                  _onDestinationSelected(index, onChooseCity),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: state.viewMode == ExplorerViewMode.map
-                        ? ExplorerMapContent(
-                            state: state,
-                            mapBuilder: mapBuilder ?? _buildGoogleMap,
-                            onPlaceSelected: cubit.selectPlace,
-                            onShowList: () =>
-                                cubit.changeViewMode(ExplorerViewMode.list),
-                            onCameraIdle: cubit.onCameraIdle,
-                            onSearchThisArea: cubit.searchThisArea,
-                            onOpenFilters: () =>
-                                _showFilters(context, state, cubit),
-                            onChooseCity: onChooseCity,
-                          )
-                        : ExplorerListContent(
-                            state: state,
-                            onPlaceSelected: cubit.selectPlaceFromList,
-                            onShowMap: () =>
-                                cubit.changeViewMode(ExplorerViewMode.map),
-                            onChooseCity: onChooseCity,
-                            onOpenFilters: () =>
-                                _showFilters(context, state, cubit),
-                            onListScrollOffsetChanged:
-                                cubit.updateListScrollOffset,
-                          ),
-                  ),
-                  if (state.isRefreshing)
-                    const Align(
-                      alignment: Alignment.topCenter,
-                      child: LinearProgressIndicator(
-                        key: Key('explorer-filter-refreshing'),
-                      ),
-                    ),
-                  if (state.refreshErrorMessage case final message?)
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: ExplorerRefreshErrorBanner(
-                        message: message,
-                        onRetry: cubit.retryRefresh,
-                        onDismiss: cubit.dismissRefreshError,
-                      ),
-                    ),
-                ],
-              ),
+            return _LoadedExplorerView(
+              onChooseCity: onChooseCity,
+              mapBuilder: mapBuilder ?? _buildGoogleMap,
             );
           }
           if (state is ExplorerError) {
@@ -134,4 +88,90 @@ class ExplorerScreen extends StatelessWidget {
       onReset: cubit.resetFilters,
     ),
   );
+}
+
+class _LoadedExplorerView extends StatelessWidget {
+  const _LoadedExplorerView({
+    required this.onChooseCity,
+    required this.mapBuilder,
+  });
+
+  final VoidCallback onChooseCity;
+  final ExplorerMapBuilder mapBuilder;
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<ExplorerCubit>();
+    return NavigationShell(
+      currentIndex: 0,
+      onDestinationSelected: (index) =>
+          ExplorerScreen._onDestinationSelected(index, onChooseCity),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: BlocSelector<ExplorerCubit, ExplorerState, ExplorerLoaded?>(
+              selector: (state) => state is ExplorerLoaded
+                  ? state.copyWith(
+                      isRefreshing: false,
+                      refreshErrorMessage: null,
+                    )
+                  : null,
+              builder: (context, state) {
+                if (state == null) return const SizedBox.shrink();
+                return state.viewMode == ExplorerViewMode.map
+                    ? ExplorerMapContent(
+                        state: state,
+                        mapBuilder: mapBuilder,
+                        onPlaceSelected: cubit.selectPlace,
+                        onShowList: () =>
+                            cubit.changeViewMode(ExplorerViewMode.list),
+                        onCameraIdle: cubit.onCameraIdle,
+                        onSearchThisArea: cubit.searchThisArea,
+                        onOpenFilters: () =>
+                            ExplorerScreen._showFilters(context, state, cubit),
+                        onChooseCity: onChooseCity,
+                      )
+                    : ExplorerListContent(
+                        state: state,
+                        onPlaceSelected: cubit.selectPlaceFromList,
+                        onShowMap: () =>
+                            cubit.changeViewMode(ExplorerViewMode.map),
+                        onChooseCity: onChooseCity,
+                        onOpenFilters: () =>
+                            ExplorerScreen._showFilters(context, state, cubit),
+                        onListScrollOffsetChanged: cubit.updateListScrollOffset,
+                      );
+              },
+            ),
+          ),
+          BlocSelector<ExplorerCubit, ExplorerState, bool>(
+            selector: (state) => state is ExplorerLoaded && state.isRefreshing,
+            builder: (context, isRefreshing) => isRefreshing
+                ? const Align(
+                    alignment: Alignment.topCenter,
+                    child: LinearProgressIndicator(
+                      key: Key('explorer-filter-refreshing'),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+          BlocSelector<ExplorerCubit, ExplorerState, String?>(
+            selector: (state) =>
+                state is ExplorerLoaded ? state.refreshErrorMessage : null,
+            builder: (context, message) => message == null
+                ? const SizedBox.shrink()
+                : Align(
+                    alignment: Alignment.bottomCenter,
+                    child: ExplorerRefreshErrorBanner(
+                      message: message,
+                      onRetry: cubit.retryRefresh,
+                      onDismiss: cubit.dismissRefreshError,
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
 }

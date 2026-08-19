@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:bloc_test/bloc_test.dart';
 import 'package:city_guide_app/features/explorer/domain/entity/explorer_filters.dart';
 import 'package:city_guide_app/features/explorer/presentation/view/explorer_screen.dart';
 import 'package:city_guide_app/features/explorer/presentation/view_model/explorer_cubit.dart';
 import 'package:city_guide_app/features/explorer/presentation/view_model/explorer_state.dart';
+import 'package:city_guide_app/features/explorer/presentation/widgets/explorer_map_content.dart';
 import 'package:city_guide_app/shared/domain/geo_point.dart';
 import 'package:city_guide_app/shared/domain/place_category.dart';
 import 'package:city_guide_app/shared/domain/place_summary.dart';
@@ -65,22 +68,25 @@ void main() {
     when(() => cubit.dismissRefreshError()).thenReturn(null);
   });
 
-  Widget buildScreen(ExplorerState state) {
+  Widget buildScreen(ExplorerState state, {ExplorerMapBuilder? mapBuilder}) {
     when(() => cubit.state).thenReturn(state);
     return MaterialApp(
       home: BlocProvider<ExplorerCubit>.value(
+        key: ValueKey(state),
         value: cubit,
         child: ExplorerScreen(
           key: UniqueKey(),
           onChooseCity: () {},
-          mapBuilder: (_, state, _, _) => ColoredBox(
-            key: const Key('mock-map'),
-            color: Colors.blueGrey,
-            child: Text(
-              state.filteredPlaces.map((place) => place.id).join(','),
-              key: const Key('mock-map-place-ids'),
-            ),
-          ),
+          mapBuilder:
+              mapBuilder ??
+              (_, state, _, _) => ColoredBox(
+                key: const Key('mock-map'),
+                color: Colors.blueGrey,
+                child: Text(
+                  state.filteredPlaces.map((place) => place.id).join(','),
+                  key: const Key('mock-map-place-ids'),
+                ),
+              ),
         ),
       ),
     );
@@ -336,5 +342,46 @@ void main() {
     verify(() => cubit.retryRefresh()).called(1);
     await tester.tap(find.byKey(const Key('dismiss-refresh-error')));
     verify(() => cubit.dismissRefreshError()).called(1);
+  });
+
+  testWidgets('refresh overlays do not rebuild the map content boundary', (
+    tester,
+  ) async {
+    const loaded = ExplorerLoaded(
+      searchCenter: center,
+      allPlaces: [place],
+      selectedPlaceId: 'place-1',
+    );
+    final states = StreamController<ExplorerState>.broadcast();
+    when(() => cubit.stream).thenAnswer((_) => states.stream);
+    var mapBuilds = 0;
+    await tester.pumpWidget(
+      buildScreen(
+        loaded,
+        mapBuilder: (_, _, _, _) {
+          mapBuilds++;
+          return const ColoredBox(color: Colors.blueGrey);
+        },
+      ),
+    );
+    expect(mapBuilds, 1);
+
+    states.add(loaded.copyWith(isRefreshing: true));
+    await tester.pump();
+
+    expect(mapBuilds, 1);
+    expect(find.byKey(const Key('explorer-filter-refreshing')), findsOneWidget);
+
+    states.add(
+      loaded.copyWith(
+        isRefreshing: false,
+        refreshErrorMessage: 'Temporary failure.',
+      ),
+    );
+    await tester.pump();
+
+    expect(mapBuilds, 1);
+    expect(find.text('Temporary failure.'), findsOneWidget);
+    await states.close();
   });
 }

@@ -1,7 +1,6 @@
 import 'package:city_guide_app/features/explorer/presentation/view_model/explorer_state.dart';
+import 'package:city_guide_app/features/explorer/presentation/widgets/explorer_marker_factory.dart';
 import 'package:city_guide_app/shared/domain/geo_point.dart';
-import 'package:city_guide_app/shared/domain/place_category.dart';
-import 'package:city_guide_app/shared/domain/place_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
@@ -24,12 +23,24 @@ class GoogleExplorerMap extends StatefulWidget {
 class _GoogleExplorerMapState extends State<GoogleExplorerMap> {
   late double _latestZoom;
   late GeoPoint _latestTarget;
+  GoogleMapController? _controller;
+  late final ClusterManager _clusterManager;
 
   @override
   void initState() {
     super.initState();
     _latestZoom = widget.state.zoom;
     _latestTarget = widget.state.searchCenter.point;
+    _clusterManager = ClusterManager(
+      clusterManagerId: ExplorerMarkerFactory.clusterManagerId,
+      onClusterTap: _onClusterTap,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
   }
 
   @override
@@ -41,12 +52,18 @@ class _GoogleExplorerMapState extends State<GoogleExplorerMap> {
         target: LatLng(center.latitude, center.longitude),
         zoom: widget.state.zoom,
       ),
-      markers: widget.state.filteredPlaces.map(_marker).toSet(),
+      clusterManagers: {_clusterManager},
+      markers: ExplorerMarkerFactory.buildMarkers(
+        places: widget.state.filteredPlaces,
+        selectedPlaceId: widget.state.selectedPlaceId,
+        onPlaceSelected: widget.onPlaceSelected,
+      ),
       compassEnabled: false,
       mapToolbarEnabled: false,
       myLocationButtonEnabled: false,
       rotateGesturesEnabled: false,
       zoomControlsEnabled: false,
+      onMapCreated: (controller) => _controller = controller,
       onCameraMove: (position) {
         _latestZoom = position.zoom;
         _latestTarget = GeoPoint(
@@ -58,22 +75,9 @@ class _GoogleExplorerMapState extends State<GoogleExplorerMap> {
     );
   }
 
-  Marker _marker(PlaceSummary place) => Marker(
-    markerId: MarkerId(place.id),
-    position: LatLng(place.location.latitude, place.location.longitude),
-    infoWindow: InfoWindow(title: place.name, snippet: place.address),
-    icon: BitmapDescriptor.defaultMarkerWithHue(
-      place.id == widget.state.selectedPlaceId
-          ? BitmapDescriptor.hueAzure
-          : _hue(place.category),
-    ),
-    onTap: () => widget.onPlaceSelected(place.id),
-  );
-
-  double _hue(PlaceCategory category) => switch (category) {
-    PlaceCategory.cafe => BitmapDescriptor.hueOrange,
-    PlaceCategory.restaurant => BitmapDescriptor.hueRed,
-    PlaceCategory.pharmacy => BitmapDescriptor.hueGreen,
-    PlaceCategory.custom => BitmapDescriptor.hueViolet,
-  };
+  void _onClusterTap(Cluster cluster) {
+    _controller?.animateCamera(
+      CameraUpdate.newLatLngBounds(cluster.bounds, 56),
+    );
+  }
 }
