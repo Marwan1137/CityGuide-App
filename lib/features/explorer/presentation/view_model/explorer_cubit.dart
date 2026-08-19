@@ -29,17 +29,47 @@ class ExplorerCubit extends Cubit<ExplorerState> {
   void selectPlace(String placeId) {
     final current = state;
     if (current is! ExplorerLoaded ||
-        !current.places.any((place) => place.id == placeId)) {
+        !current.filteredPlaces.any((place) => place.id == placeId)) {
       return;
     }
-    emit(
-      ExplorerLoaded(
-        searchCenter: current.searchCenter,
-        places: current.places,
-        selectedPlaceId: placeId,
-        isRefreshing: current.isRefreshing,
-      ),
+    _emitLoaded(current, selectedPlaceId: placeId);
+  }
+
+  void selectPlaceFromList(String placeId) {
+    final current = state;
+    if (current is! ExplorerLoaded ||
+        !current.filteredPlaces.any((place) => place.id == placeId)) {
+      return;
+    }
+    _emitLoaded(
+      current,
+      selectedPlaceId: placeId,
+      viewMode: ExplorerViewMode.map,
     );
+  }
+
+  void changeViewMode(ExplorerViewMode viewMode) {
+    final current = state;
+    if (current is! ExplorerLoaded || current.viewMode == viewMode) return;
+    _emitLoaded(current, viewMode: viewMode);
+  }
+
+  void updateZoom(double zoom) {
+    final current = state;
+    if (current is! ExplorerLoaded || (current.zoom - zoom).abs() < 0.01) {
+      return;
+    }
+    _emitLoaded(current, zoom: zoom);
+  }
+
+  void updateListScrollOffset(double offset) {
+    final current = state;
+    final safeOffset = offset < 0 ? 0.0 : offset;
+    if (current is! ExplorerLoaded ||
+        (current.listScrollOffset - safeOffset).abs() < 0.5) {
+      return;
+    }
+    _emitLoaded(current, listScrollOffset: safeOffset);
   }
 
   Future<void> _load(SearchCenter searchCenter) async {
@@ -50,7 +80,7 @@ class ExplorerCubit extends Cubit<ExplorerState> {
       onSuccess: (places) => emit(
         ExplorerLoaded(
           searchCenter: searchCenter,
-          places: places,
+          allPlaces: places,
           selectedPlaceId: places.isEmpty ? null : places.first.id,
         ),
       ),
@@ -63,4 +93,25 @@ class ExplorerCubit extends Cubit<ExplorerState> {
   String _message(Failure failure) => failure.message.trim().isEmpty
       ? 'Nearby places are unavailable right now. Please try again.'
       : failure.message;
+
+  void _emitLoaded(
+    ExplorerLoaded current, {
+    String? selectedPlaceId,
+    ExplorerViewMode? viewMode,
+    double? zoom,
+    double? listScrollOffset,
+  }) {
+    emit(
+      ExplorerLoaded(
+        searchCenter: current.searchCenter,
+        allPlaces: current.allPlaces,
+        filteredPlaces: current.filteredPlaces,
+        selectedPlaceId: selectedPlaceId ?? current.selectedPlaceId,
+        isRefreshing: current.isRefreshing,
+        viewMode: viewMode ?? current.viewMode,
+        zoom: zoom ?? current.zoom,
+        listScrollOffset: listScrollOffset ?? current.listScrollOffset,
+      ),
+    );
+  }
 }

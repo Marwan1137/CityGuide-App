@@ -6,6 +6,8 @@ sealed class ExplorerState extends Equatable {
   const ExplorerState();
 }
 
+enum ExplorerViewMode { map, list }
+
 final class ExplorerLoading extends ExplorerState {
   const ExplorerLoading();
 
@@ -16,18 +18,28 @@ final class ExplorerLoading extends ExplorerState {
 final class ExplorerLoaded extends ExplorerState {
   const ExplorerLoaded({
     required this.searchCenter,
-    required this.places,
+    required this.allPlaces,
+    List<PlaceSummary>? filteredPlaces,
     this.selectedPlaceId,
     this.isRefreshing = false,
-  });
+    this.viewMode = ExplorerViewMode.map,
+    this.zoom = 14,
+    this.listScrollOffset = 0,
+  }) : filteredPlaces = filteredPlaces ?? allPlaces;
 
   final SearchCenter searchCenter;
-  final List<PlaceSummary> places;
+  final List<PlaceSummary> allPlaces;
+  final List<PlaceSummary> filteredPlaces;
   final String? selectedPlaceId;
   final bool isRefreshing;
+  final ExplorerViewMode viewMode;
+  final double zoom;
+  final double listScrollOffset;
+
+  List<PlaceSummary> get places => filteredPlaces;
 
   PlaceSummary? get selectedPlace {
-    for (final place in places) {
+    for (final place in filteredPlaces) {
       if (place.id == selectedPlaceId) return place;
     }
     return null;
@@ -36,9 +48,13 @@ final class ExplorerLoaded extends ExplorerState {
   @override
   List<Object?> get props => [
     searchCenter,
-    places,
+    allPlaces,
+    filteredPlaces,
     selectedPlaceId,
     isRefreshing,
+    viewMode,
+    zoom,
+    listScrollOffset,
   ];
 }
 

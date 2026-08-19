@@ -30,6 +30,12 @@ void main() {
     category: PlaceCategory.cafe,
     location: GeoPoint(latitude: 30.045, longitude: 31.236),
   );
+  const secondPlace = PlaceSummary(
+    id: 'place-2',
+    name: 'Nile Brew',
+    category: PlaceCategory.cafe,
+    location: GeoPoint(latitude: 30.046, longitude: 31.237),
+  );
 
   setUpAll(
     () => registerFallbackValue(
@@ -57,7 +63,7 @@ void main() {
       ExplorerLoading(),
       ExplorerLoaded(
         searchCenter: center,
-        places: [place],
+        allPlaces: [place],
         selectedPlaceId: 'place-1',
       ),
     ],
@@ -75,7 +81,7 @@ void main() {
     act: (cubit) => cubit.initialize(center),
     expect: () => const [
       ExplorerLoading(),
-      ExplorerLoaded(searchCenter: center, places: []),
+      ExplorerLoaded(searchCenter: center, allPlaces: []),
     ],
   );
 
@@ -102,13 +108,130 @@ void main() {
       ).thenAnswer((_) async => const Success([place]));
       return ExplorerCubit(useCase);
     },
-    seed: () => const ExplorerLoaded(searchCenter: center, places: [place]),
+    seed: () => const ExplorerLoaded(searchCenter: center, allPlaces: [place]),
     act: (cubit) => cubit.selectPlace('place-1'),
     expect: () => const [
       ExplorerLoaded(
         searchCenter: center,
-        places: [place],
+        allPlaces: [place],
         selectedPlaceId: 'place-1',
+      ),
+    ],
+    verify: (_) => verifyNever(() => repo.searchNearby(any())),
+  );
+
+  blocTest<ExplorerCubit, ExplorerState>(
+    'switches map and list without another nearby request',
+    build: () => ExplorerCubit(useCase),
+    seed: () => const ExplorerLoaded(
+      searchCenter: center,
+      allPlaces: [place, secondPlace],
+      selectedPlaceId: 'place-1',
+    ),
+    act: (cubit) {
+      cubit.changeViewMode(ExplorerViewMode.list);
+      cubit.changeViewMode(ExplorerViewMode.map);
+    },
+    expect: () => const [
+      ExplorerLoaded(
+        searchCenter: center,
+        allPlaces: [place, secondPlace],
+        selectedPlaceId: 'place-1',
+        viewMode: ExplorerViewMode.list,
+      ),
+      ExplorerLoaded(
+        searchCenter: center,
+        allPlaces: [place, secondPlace],
+        selectedPlaceId: 'place-1',
+      ),
+    ],
+    verify: (_) => verifyNever(() => repo.searchNearby(any())),
+  );
+
+  blocTest<ExplorerCubit, ExplorerState>(
+    'list card selection returns to map and preserves explorer context',
+    build: () => ExplorerCubit(useCase),
+    seed: () => const ExplorerLoaded(
+      searchCenter: center,
+      allPlaces: [place, secondPlace],
+      filteredPlaces: [place, secondPlace],
+      selectedPlaceId: 'place-1',
+      viewMode: ExplorerViewMode.list,
+      zoom: 15.5,
+      listScrollOffset: 128,
+    ),
+    act: (cubit) => cubit.selectPlaceFromList('place-2'),
+    expect: () => const [
+      ExplorerLoaded(
+        searchCenter: center,
+        allPlaces: [place, secondPlace],
+        filteredPlaces: [place, secondPlace],
+        selectedPlaceId: 'place-2',
+        zoom: 15.5,
+        listScrollOffset: 128,
+      ),
+    ],
+    verify: (_) => verifyNever(() => repo.searchNearby(any())),
+  );
+
+  blocTest<ExplorerCubit, ExplorerState>(
+    'keeps identical filtered IDs while preserving zoom and list position',
+    build: () => ExplorerCubit(useCase),
+    seed: () => const ExplorerLoaded(
+      searchCenter: center,
+      allPlaces: [place, secondPlace],
+      filteredPlaces: [secondPlace],
+      selectedPlaceId: 'place-2',
+    ),
+    act: (cubit) {
+      cubit.updateZoom(16);
+      cubit.updateListScrollOffset(84);
+    },
+    expect: () => const [
+      ExplorerLoaded(
+        searchCenter: center,
+        allPlaces: [place, secondPlace],
+        filteredPlaces: [secondPlace],
+        selectedPlaceId: 'place-2',
+        zoom: 16,
+      ),
+      ExplorerLoaded(
+        searchCenter: center,
+        allPlaces: [place, secondPlace],
+        filteredPlaces: [secondPlace],
+        selectedPlaceId: 'place-2',
+        zoom: 16,
+        listScrollOffset: 84,
+      ),
+    ],
+  );
+
+  blocTest<ExplorerCubit, ExplorerState>(
+    'marker selection remains selected after switching to the list',
+    build: () => ExplorerCubit(useCase),
+    seed: () => const ExplorerLoaded(
+      searchCenter: center,
+      allPlaces: [place, secondPlace],
+      selectedPlaceId: 'place-1',
+      zoom: 15,
+    ),
+    act: (cubit) {
+      cubit.selectPlace('place-2');
+      cubit.changeViewMode(ExplorerViewMode.list);
+    },
+    expect: () => const [
+      ExplorerLoaded(
+        searchCenter: center,
+        allPlaces: [place, secondPlace],
+        selectedPlaceId: 'place-2',
+        zoom: 15,
+      ),
+      ExplorerLoaded(
+        searchCenter: center,
+        allPlaces: [place, secondPlace],
+        selectedPlaceId: 'place-2',
+        viewMode: ExplorerViewMode.list,
+        zoom: 15,
       ),
     ],
     verify: (_) => verifyNever(() => repo.searchNearby(any())),

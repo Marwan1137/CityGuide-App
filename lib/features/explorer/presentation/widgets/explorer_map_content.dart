@@ -1,6 +1,6 @@
 import 'package:city_guide_app/features/explorer/presentation/view_model/explorer_state.dart';
+import 'package:city_guide_app/features/explorer/presentation/widgets/place_quick_preview.dart';
 import 'package:city_guide_app/shared/widgets/empty_state_view.dart';
-import 'package:city_guide_app/shared/widgets/place_card.dart';
 import 'package:flutter/material.dart';
 
 typedef ExplorerMapBuilder =
@@ -8,6 +8,7 @@ typedef ExplorerMapBuilder =
       BuildContext context,
       ExplorerLoaded state,
       ValueChanged<String> onPlaceSelected,
+      ValueChanged<double> onZoomChanged,
     );
 
 class ExplorerMapContent extends StatelessWidget {
@@ -15,6 +16,8 @@ class ExplorerMapContent extends StatelessWidget {
     required this.state,
     required this.mapBuilder,
     required this.onPlaceSelected,
+    required this.onShowList,
+    required this.onZoomChanged,
     required this.onChooseCity,
     super.key,
   });
@@ -22,6 +25,8 @@ class ExplorerMapContent extends StatelessWidget {
   final ExplorerLoaded state;
   final ExplorerMapBuilder mapBuilder;
   final ValueChanged<String> onPlaceSelected;
+  final VoidCallback onShowList;
+  final ValueChanged<double> onZoomChanged;
   final VoidCallback onChooseCity;
 
   @override
@@ -30,7 +35,9 @@ class ExplorerMapContent extends StatelessWidget {
     final topInset = MediaQuery.paddingOf(context).top;
     return Stack(
       children: [
-        Positioned.fill(child: mapBuilder(context, state, onPlaceSelected)),
+        Positioned.fill(
+          child: mapBuilder(context, state, onPlaceSelected, onZoomChanged),
+        ),
         Positioned(
           top: 0,
           left: 0,
@@ -64,16 +71,17 @@ class ExplorerMapContent extends StatelessWidget {
           top: topInset + 132,
           right: 16,
           child: Column(
-            children: const [
-              _RoundControl(
+            children: [
+              const _RoundControl(
                 icon: Icons.my_location,
                 tooltip: 'Current search center',
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               _RoundControl(
                 icon: Icons.format_list_bulleted,
-                tooltip: 'List view arrives in Feature 4',
+                tooltip: 'Show list',
                 selected: true,
+                onPressed: onShowList,
               ),
             ],
           ),
@@ -99,13 +107,9 @@ class ExplorerMapContent extends StatelessWidget {
             left: 12,
             right: 12,
             bottom: 12,
-            child: Semantics(
-              label: 'Selected nearby place',
-              child: PlaceCard(
-                place: selectedPlace,
-                selected: true,
-                onTap: () => onPlaceSelected(selectedPlace.id),
-              ),
+            child: PlaceQuickPreview(
+              place: selectedPlace,
+              onTap: () => onPlaceSelected(selectedPlace.id),
             ),
           ),
       ],
@@ -184,11 +188,13 @@ class _RoundControl extends StatelessWidget {
     required this.icon,
     required this.tooltip,
     this.selected = false,
+    this.onPressed,
   });
 
   final IconData icon;
   final String tooltip;
   final bool selected;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) => Tooltip(
@@ -199,14 +205,19 @@ class _RoundControl extends StatelessWidget {
           : Theme.of(context).colorScheme.surface.withValues(alpha: 0.94),
       elevation: 2,
       shape: const CircleBorder(),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Icon(
-          icon,
-          size: 21,
-          color: selected
-              ? Theme.of(context).colorScheme.onPrimary
-              : Theme.of(context).colorScheme.onSurface,
+      child: InkWell(
+        key: selected ? const Key('show-list-button') : null,
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Icon(
+            icon,
+            size: 21,
+            color: selected
+                ? Theme.of(context).colorScheme.onPrimary
+                : Theme.of(context).colorScheme.onSurface,
+          ),
         ),
       ),
     ),

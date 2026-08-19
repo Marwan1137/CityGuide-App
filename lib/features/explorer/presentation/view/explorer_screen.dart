@@ -1,5 +1,6 @@
 import 'package:city_guide_app/features/explorer/presentation/view_model/explorer_cubit.dart';
 import 'package:city_guide_app/features/explorer/presentation/view_model/explorer_state.dart';
+import 'package:city_guide_app/features/explorer/presentation/widgets/explorer_list_content.dart';
 import 'package:city_guide_app/features/explorer/presentation/widgets/explorer_map_content.dart';
 import 'package:city_guide_app/features/explorer/presentation/widgets/google_explorer_map.dart';
 import 'package:city_guide_app/shared/widgets/friendly_error_view.dart';
@@ -31,16 +32,29 @@ class ExplorerScreen extends StatelessWidget {
             );
           }
           if (state is ExplorerLoaded) {
+            final cubit = context.read<ExplorerCubit>();
             return NavigationShell(
               currentIndex: 0,
               onDestinationSelected: (index) =>
                   _onDestinationSelected(index, onChooseCity),
-              child: ExplorerMapContent(
-                state: state,
-                mapBuilder: mapBuilder ?? _buildGoogleMap,
-                onPlaceSelected: context.read<ExplorerCubit>().selectPlace,
-                onChooseCity: onChooseCity,
-              ),
+              child: state.viewMode == ExplorerViewMode.map
+                  ? ExplorerMapContent(
+                      state: state,
+                      mapBuilder: mapBuilder ?? _buildGoogleMap,
+                      onPlaceSelected: cubit.selectPlace,
+                      onShowList: () =>
+                          cubit.changeViewMode(ExplorerViewMode.list),
+                      onZoomChanged: cubit.updateZoom,
+                      onChooseCity: onChooseCity,
+                    )
+                  : ExplorerListContent(
+                      state: state,
+                      onPlaceSelected: cubit.selectPlaceFromList,
+                      onShowMap: () =>
+                          cubit.changeViewMode(ExplorerViewMode.map),
+                      onChooseCity: onChooseCity,
+                      onListScrollOffsetChanged: cubit.updateListScrollOffset,
+                    ),
             );
           }
           if (state is ExplorerError) {
@@ -63,7 +77,12 @@ class ExplorerScreen extends StatelessWidget {
     BuildContext context,
     ExplorerLoaded state,
     ValueChanged<String> onPlaceSelected,
-  ) => GoogleExplorerMap(state: state, onPlaceSelected: onPlaceSelected);
+    ValueChanged<double> onZoomChanged,
+  ) => GoogleExplorerMap(
+    state: state,
+    onPlaceSelected: onPlaceSelected,
+    onZoomChanged: onZoomChanged,
+  );
 
   static void _onDestinationSelected(int index, VoidCallback onChooseCity) {
     if (index == 1) onChooseCity();

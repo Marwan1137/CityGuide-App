@@ -17,6 +17,8 @@ class _MockExplorerCubit extends MockCubit<ExplorerState>
 void main() {
   late _MockExplorerCubit cubit;
 
+  setUpAll(() => registerFallbackValue(ExplorerViewMode.map));
+
   const center = SearchCenter(
     point: GeoPoint(latitude: 30.0444, longitude: 31.2357),
     source: SearchCenterSource.selectedCity,
@@ -30,11 +32,23 @@ void main() {
     address: 'Downtown Cairo',
     rating: 4.7,
   );
+  const secondPlace = PlaceSummary(
+    id: 'place-2',
+    name: 'Nile Brew',
+    category: PlaceCategory.cafe,
+    location: GeoPoint(latitude: 30.046, longitude: 31.237),
+    address: 'Garden City',
+    rating: 4.5,
+  );
 
   setUp(() {
     cubit = _MockExplorerCubit();
     when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
     when(() => cubit.selectPlace(any())).thenReturn(null);
+    when(() => cubit.selectPlaceFromList(any())).thenReturn(null);
+    when(() => cubit.changeViewMode(any())).thenReturn(null);
+    when(() => cubit.updateZoom(any())).thenReturn(null);
+    when(() => cubit.updateListScrollOffset(any())).thenReturn(null);
   });
 
   Widget buildScreen(ExplorerState state) {
@@ -43,9 +57,16 @@ void main() {
       home: BlocProvider<ExplorerCubit>.value(
         value: cubit,
         child: ExplorerScreen(
+          key: UniqueKey(),
           onChooseCity: () {},
-          mapBuilder: (_, _, _) =>
-              const ColoredBox(key: Key('mock-map'), color: Colors.blueGrey),
+          mapBuilder: (_, state, _, _) => ColoredBox(
+            key: const Key('mock-map'),
+            color: Colors.blueGrey,
+            child: Text(
+              state.filteredPlaces.map((place) => place.id).join(','),
+              key: const Key('mock-map-place-ids'),
+            ),
+          ),
         ),
       ),
     );
@@ -65,7 +86,7 @@ void main() {
       buildScreen(
         const ExplorerLoaded(
           searchCenter: center,
-          places: [place],
+          allPlaces: [place],
           selectedPlaceId: 'place-1',
         ),
       ),
@@ -79,7 +100,7 @@ void main() {
 
   testWidgets('renders a friendly loaded empty overlay', (tester) async {
     await tester.pumpWidget(
-      buildScreen(const ExplorerLoaded(searchCenter: center, places: [])),
+      buildScreen(const ExplorerLoaded(searchCenter: center, allPlaces: [])),
     );
 
     expect(find.byKey(const Key('mock-map')), findsOneWidget);
@@ -109,11 +130,74 @@ void main() {
     tester,
   ) async {
     final widget = buildScreen(
-      const ExplorerLoaded(searchCenter: center, places: [place]),
+      const ExplorerLoaded(searchCenter: center, allPlaces: [place]),
     );
     await tester.pumpWidget(widget);
     await tester.pumpWidget(widget);
 
+    verifyNever(() => cubit.initialize(center));
+  });
+
+  testWidgets('map and list expose identical place IDs and counts', (
+    tester,
+  ) async {
+    const places = [place, secondPlace];
+    await tester.pumpWidget(
+      buildScreen(
+        const ExplorerLoaded(searchCenter: center, allPlaces: places),
+      ),
+    );
+
+    expect(find.text('place-1,place-2'), findsOneWidget);
+
+    await tester.pumpWidget(
+      buildScreen(
+        const ExplorerLoaded(
+          searchCenter: center,
+          allPlaces: places,
+          viewMode: ExplorerViewMode.list,
+        ),
+      ),
+    );
+
+    expect(find.text('2 nearby cafés'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('place-list-card-place-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('place-list-card-place-2')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('view controls and list cards synchronize through one Cubit', (
+    tester,
+  ) async {
+    const places = [place, secondPlace];
+    await tester.pumpWidget(
+      buildScreen(
+        const ExplorerLoaded(searchCenter: center, allPlaces: places),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('show-list-button')));
+    verify(() => cubit.changeViewMode(ExplorerViewMode.list)).called(1);
+
+    await tester.pumpWidget(
+      buildScreen(
+        const ExplorerLoaded(
+          searchCenter: center,
+          allPlaces: places,
+          viewMode: ExplorerViewMode.list,
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('place-list-card-place-2')));
+    verify(() => cubit.selectPlaceFromList('place-2')).called(1);
+
+    await tester.tap(find.byKey(const Key('show-map-button')));
+    verify(() => cubit.changeViewMode(ExplorerViewMode.map)).called(1);
     verifyNever(() => cubit.initialize(center));
   });
 }
