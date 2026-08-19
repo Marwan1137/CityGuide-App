@@ -3,6 +3,8 @@ import 'package:city_guide_app/features/location/domain/entity/location_access.d
 import 'package:city_guide_app/features/location/presentation/view/location_screen.dart';
 import 'package:city_guide_app/features/location/presentation/view_model/location_cubit.dart';
 import 'package:city_guide_app/features/location/presentation/view_model/location_state.dart';
+import 'package:city_guide_app/shared/domain/geo_point.dart';
+import 'package:city_guide_app/shared/domain/search_center.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -59,5 +61,45 @@ void main() {
     expect(find.text('We hit a small detour'), findsOneWidget);
     expect(find.text('Location is unavailable right now.'), findsOneWidget);
     expect(find.text('Try again'), findsOneWidget);
+  });
+
+  testWidgets('continues to Explorer with the device search center', (
+    tester,
+  ) async {
+    const point = GeoPoint(latitude: 30.0444, longitude: 31.2357);
+    SearchCenter? selectedCenter;
+    whenListen(
+      cubit,
+      const Stream<LocationState>.empty(),
+      initialState: const LocationLoaded(
+        LocationAccess(status: LocationAccessStatus.granted, point: point),
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider<LocationCubit>.value(
+          value: cubit,
+          child: LocationScreen(
+            onLocationReady: (center) => selectedCenter = center,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Continue'));
+
+    expect(
+      selectedCenter,
+      const SearchCenter(
+        point: point,
+        source: SearchCenterSource.device,
+        label: 'Current location',
+      ),
+    );
+    expect(
+      find.text('Explorer will be connected in its feature branch.'),
+      findsNothing,
+    );
   });
 }

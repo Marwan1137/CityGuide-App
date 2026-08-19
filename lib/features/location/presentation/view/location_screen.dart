@@ -1,6 +1,7 @@
 import 'package:city_guide_app/features/location/presentation/view_model/location_cubit.dart';
 import 'package:city_guide_app/features/location/presentation/view_model/location_state.dart';
 import 'package:city_guide_app/features/location/presentation/widgets/location_status_view.dart';
+import 'package:city_guide_app/shared/domain/search_center.dart';
 import 'package:city_guide_app/shared/widgets/friendly_error_view.dart';
 import 'package:city_guide_app/shared/widgets/loading_view.dart';
 import 'package:flutter/material.dart';
@@ -10,7 +11,7 @@ class LocationScreen extends StatefulWidget {
   const LocationScreen({this.onChooseCity, this.onLocationReady, super.key});
 
   final VoidCallback? onChooseCity;
-  final VoidCallback? onLocationReady;
+  final ValueChanged<SearchCenter>? onLocationReady;
 
   @override
   State<LocationScreen> createState() => _LocationScreenState();
@@ -49,8 +50,21 @@ class _LocationScreenState extends State<LocationScreen>
             access: state.access,
             onChooseCity:
                 widget.onChooseCity ?? () => _showUpcoming('City search'),
-            onLocationReady:
-                widget.onLocationReady ?? () => _showUpcoming('Explorer'),
+            onLocationReady: () {
+              final point = state.access.point;
+              if (point == null) return;
+              final center = SearchCenter(
+                point: point,
+                source: SearchCenterSource.device,
+                label: 'Current location',
+              );
+              final onLocationReady = widget.onLocationReady;
+              if (onLocationReady != null) {
+                onLocationReady(center);
+              } else {
+                _showUpcoming('Explorer');
+              }
+            },
           );
         }
         if (state is LocationError) {

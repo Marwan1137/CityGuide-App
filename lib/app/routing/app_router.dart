@@ -1,7 +1,8 @@
 import 'package:city_guide_app/core/di/injection.dart';
 import 'package:city_guide_app/features/city_search/presentation/view/city_search_screen.dart';
-import 'package:city_guide_app/features/city_search/presentation/view/explorer_handoff_screen.dart';
 import 'package:city_guide_app/features/city_search/presentation/view_model/city_search_cubit.dart';
+import 'package:city_guide_app/features/explorer/presentation/view/explorer_screen.dart';
+import 'package:city_guide_app/features/explorer/presentation/view_model/explorer_cubit.dart';
 import 'package:city_guide_app/features/home/presentation/pages/home_page.dart';
 import 'package:city_guide_app/features/location/presentation/view/location_screen.dart';
 import 'package:city_guide_app/features/location/presentation/view_model/location_cubit.dart';
@@ -28,6 +29,8 @@ abstract final class AppRouter {
           create: (_) => getIt<LocationCubit>()..initialize(),
           child: LocationScreen(
             onChooseCity: () => context.go(AppRoutes.citySearch),
+            onLocationReady: (center) =>
+                context.go(AppRoutes.explorer, extra: center),
           ),
         ),
       ),
@@ -46,8 +49,15 @@ abstract final class AppRouter {
         path: AppRoutes.explorer,
         redirect: (_, state) =>
             state.extra is SearchCenter ? null : AppRoutes.citySearch,
-        builder: (_, state) =>
-            ExplorerHandoffScreen(searchCenter: state.extra! as SearchCenter),
+        builder: (context, state) {
+          final searchCenter = state.extra! as SearchCenter;
+          return BlocProvider(
+            create: (_) => getIt<ExplorerCubit>()..initialize(searchCenter),
+            child: ExplorerScreen(
+              onChooseCity: () => context.go(AppRoutes.citySearch),
+            ),
+          );
+        },
       ),
     ],
     errorBuilder: (_, _) => const _UnknownRoutePage(),

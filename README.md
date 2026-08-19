@@ -83,3 +83,5 @@ branch roadmap. Feature 1 manual verification is documented in
 [docs/testing/location_permission_matrix.md](docs/testing/location_permission_matrix.md).
 Feature 2 verification is documented in
 [docs/testing/city_search_fallback.md](docs/testing/city_search_fallback.md).
+Feature 3 verification is documented in
+[docs/testing/explorer_map.md](docs/testing/explorer_map.md).

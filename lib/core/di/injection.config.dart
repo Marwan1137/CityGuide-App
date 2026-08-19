@@ -39,6 +39,18 @@ import 'package:city_guide_app/features/city_search/domain/use_cases/select_city
     as _i405;
 import 'package:city_guide_app/features/city_search/presentation/view_model/city_search_cubit.dart'
     as _i109;
+import 'package:city_guide_app/features/explorer/data/data_source_contract/nearby_places_datasource.dart'
+    as _i745;
+import 'package:city_guide_app/features/explorer/data/data_source_impl/remote_nearby_places_datasource_impl.dart'
+    as _i872;
+import 'package:city_guide_app/features/explorer/data/repo_impl/nearby_places_repo_impl.dart'
+    as _i523;
+import 'package:city_guide_app/features/explorer/domain/repo_contract/nearby_places_repo.dart'
+    as _i263;
+import 'package:city_guide_app/features/explorer/domain/use_cases/search_nearby_places_usecase.dart'
+    as _i942;
+import 'package:city_guide_app/features/explorer/presentation/view_model/explorer_cubit.dart'
+    as _i531;
 import 'package:city_guide_app/features/location/data/data_source_contract/location_datasource.dart'
     as _i632;
 import 'package:city_guide_app/features/location/data/data_source_contract/location_platform_gateway.dart'
@@ -108,6 +120,13 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i307.ApiManager>(
       () => _i307.ApiManager(gh<_i361.Dio>(), gh<_i945.ApiExecutor>()),
     );
+    gh.lazySingleton<_i745.NearbyPlacesDatasource>(
+      () => _i872.RemoteNearbyPlacesDatasourceImpl(
+        gh<_i307.ApiManager>(),
+        gh<_i310.AppConfig>(),
+        gh<_i150.SupabaseSessionService>(),
+      ),
+    );
     gh.lazySingleton<_i529.RemoteCitySearchDatasource>(
       () => _i717.RemoteCitySearchDatasourceImpl(
         gh<_i307.ApiManager>(),
@@ -117,6 +136,9 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i733.LocationRepo>(
       () => _i28.LocationRepoImpl(gh<_i632.LocationDatasource>()),
+    );
+    gh.lazySingleton<_i263.NearbyPlacesRepo>(
+      () => _i523.NearbyPlacesRepoImpl(gh<_i745.NearbyPlacesDatasource>()),
     );
     gh.factory<_i792.CheckLocationAccessUseCase>(
       () => _i792.CheckLocationAccessUseCase(gh<_i733.LocationRepo>()),
@@ -136,6 +158,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i529.RemoteCitySearchDatasource>(),
       ),
     );
+    gh.factory<_i942.SearchNearbyPlacesUseCase>(
+      () => _i942.SearchNearbyPlacesUseCase(gh<_i263.NearbyPlacesRepo>()),
+    );
     gh.factory<_i154.LocationCubit>(
       () => _i154.LocationCubit(
         gh<_i792.CheckLocationAccessUseCase>(),
@@ -143,6 +168,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i830.GetCurrentLocationUseCase>(),
         gh<_i663.OpenLocationSettingsUseCase>(),
       ),
+    );
+    gh.factory<_i531.ExplorerCubit>(
+      () => _i531.ExplorerCubit(gh<_i942.SearchNearbyPlacesUseCase>()),
     );
     gh.factory<_i1035.GeocodeCityUseCase>(
       () => _i1035.GeocodeCityUseCase(gh<_i730.CitySearchRepo>()),
