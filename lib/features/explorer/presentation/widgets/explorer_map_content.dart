@@ -1,5 +1,6 @@
 import 'package:city_guide_app/features/explorer/presentation/view_model/explorer_state.dart';
 import 'package:city_guide_app/features/explorer/presentation/widgets/place_quick_preview.dart';
+import 'package:city_guide_app/shared/domain/place_category.dart';
 import 'package:city_guide_app/shared/widgets/empty_state_view.dart';
 import 'package:flutter/material.dart';
 
@@ -18,6 +19,7 @@ class ExplorerMapContent extends StatelessWidget {
     required this.onPlaceSelected,
     required this.onShowList,
     required this.onZoomChanged,
+    required this.onOpenFilters,
     required this.onChooseCity,
     super.key,
   });
@@ -27,6 +29,7 @@ class ExplorerMapContent extends StatelessWidget {
   final ValueChanged<String> onPlaceSelected;
   final VoidCallback onShowList;
   final ValueChanged<double> onZoomChanged;
+  final VoidCallback onOpenFilters;
   final VoidCallback onChooseCity;
 
   @override
@@ -60,12 +63,18 @@ class ExplorerMapContent extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const _RoundControl(
+              _RoundControl(
                 icon: Icons.tune,
-                tooltip: 'Filters arrive in Feature 5',
+                tooltip: 'Filter nearby places',
+                onPressed: onOpenFilters,
               ),
             ],
           ),
+        ),
+        Positioned(
+          top: topInset + 132,
+          left: 16,
+          child: _ActiveFilters(state: state),
         ),
         Positioned(
           top: topInset + 132,
@@ -93,11 +102,11 @@ class ExplorerMapContent extends StatelessWidget {
                 color: Theme.of(
                   context,
                 ).colorScheme.surface.withValues(alpha: 0.88),
-                child: const EmptyStateView(
-                  title: 'No cafes found nearby',
+                child: EmptyStateView(
+                  title: 'No ${_pluralCategory(state)} found nearby',
                   message:
-                      'Try another city now, or adjust category and distance when filters are available.',
-                  icon: Icons.local_cafe_outlined,
+                      'Try a wider distance, another category, or a different city.',
+                  icon: _categoryIcon(state),
                 ),
               ),
             ),
@@ -116,6 +125,43 @@ class ExplorerMapContent extends StatelessWidget {
     );
   }
 }
+
+class _ActiveFilters extends StatelessWidget {
+  const _ActiveFilters({required this.state});
+
+  final ExplorerLoaded state;
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+    spacing: 6,
+    children: [
+      Chip(
+        visualDensity: VisualDensity.compact,
+        label: Text(state.filters.category.label),
+      ),
+      Chip(
+        visualDensity: VisualDensity.compact,
+        label: Text('${state.filters.radiusMeters ~/ 1000} km'),
+      ),
+    ],
+  );
+}
+
+String _pluralCategory(ExplorerLoaded state) =>
+    switch (state.filters.category) {
+      PlaceCategory.cafe => 'cafés',
+      PlaceCategory.restaurant => 'restaurants',
+      PlaceCategory.pharmacy => 'pharmacies',
+      PlaceCategory.custom => 'places',
+    };
+
+IconData _categoryIcon(ExplorerLoaded state) =>
+    switch (state.filters.category) {
+      PlaceCategory.cafe => Icons.local_cafe_outlined,
+      PlaceCategory.restaurant => Icons.restaurant_outlined,
+      PlaceCategory.pharmacy => Icons.local_pharmacy_outlined,
+      PlaceCategory.custom => Icons.place_outlined,
+    };
 
 class _ExplorerHeader extends StatelessWidget {
   const _ExplorerHeader({required this.topInset});

@@ -39,14 +39,30 @@ import 'package:city_guide_app/features/city_search/domain/use_cases/select_city
     as _i405;
 import 'package:city_guide_app/features/city_search/presentation/view_model/city_search_cubit.dart'
     as _i109;
+import 'package:city_guide_app/features/explorer/data/data_source_contract/explorer_filter_preferences_datasource.dart'
+    as _i229;
 import 'package:city_guide_app/features/explorer/data/data_source_contract/nearby_places_datasource.dart'
     as _i745;
+import 'package:city_guide_app/features/explorer/data/data_source_impl/local_explorer_filter_preferences_datasource_impl.dart'
+    as _i759;
 import 'package:city_guide_app/features/explorer/data/data_source_impl/remote_nearby_places_datasource_impl.dart'
     as _i872;
+import 'package:city_guide_app/features/explorer/data/data_source_impl/shared_preferences_explorer_filter_store.dart'
+    as _i990;
+import 'package:city_guide_app/features/explorer/data/repo_impl/explorer_filter_preferences_repo_impl.dart'
+    as _i749;
 import 'package:city_guide_app/features/explorer/data/repo_impl/nearby_places_repo_impl.dart'
     as _i523;
+import 'package:city_guide_app/features/explorer/domain/repo_contract/explorer_filter_preferences_repo.dart'
+    as _i320;
 import 'package:city_guide_app/features/explorer/domain/repo_contract/nearby_places_repo.dart'
     as _i263;
+import 'package:city_guide_app/features/explorer/domain/use_cases/load_explorer_filters_usecase.dart'
+    as _i566;
+import 'package:city_guide_app/features/explorer/domain/use_cases/reset_explorer_filters_usecase.dart'
+    as _i458;
+import 'package:city_guide_app/features/explorer/domain/use_cases/save_explorer_filters_usecase.dart'
+    as _i936;
 import 'package:city_guide_app/features/explorer/domain/use_cases/search_nearby_places_usecase.dart'
     as _i942;
 import 'package:city_guide_app/features/explorer/presentation/view_model/explorer_cubit.dart'
@@ -89,6 +105,9 @@ extension GetItInjectableX on _i174.GetIt {
     final registerModule = _$RegisterModule();
     gh.lazySingleton<_i945.ApiExecutor>(() => const _i945.ApiExecutor());
     gh.lazySingleton<_i310.AppConfig>(() => registerModule.appConfig);
+    gh.lazySingleton<_i229.ExplorerFilterPreferencesStore>(
+      () => _i990.SharedPreferencesExplorerFilterStore(),
+    );
     gh.lazySingleton<_i798.LocationPlatformGateway>(
       () => _i247.GeolocatorGateway(),
     );
@@ -117,6 +136,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i150.SupabaseSessionService>(
       () => _i150.SupabaseSessionService(gh<_i310.AppConfig>()),
     );
+    gh.lazySingleton<_i229.ExplorerFilterPreferencesDatasource>(
+      () => _i759.LocalExplorerFilterPreferencesDatasourceImpl(
+        gh<_i945.ApiExecutor>(),
+        gh<_i229.ExplorerFilterPreferencesStore>(),
+      ),
+    );
     gh.lazySingleton<_i307.ApiManager>(
       () => _i307.ApiManager(gh<_i361.Dio>(), gh<_i945.ApiExecutor>()),
     );
@@ -136,6 +161,11 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i733.LocationRepo>(
       () => _i28.LocationRepoImpl(gh<_i632.LocationDatasource>()),
+    );
+    gh.lazySingleton<_i320.ExplorerFilterPreferencesRepo>(
+      () => _i749.ExplorerFilterPreferencesRepoImpl(
+        gh<_i229.ExplorerFilterPreferencesDatasource>(),
+      ),
     );
     gh.lazySingleton<_i263.NearbyPlacesRepo>(
       () => _i523.NearbyPlacesRepoImpl(gh<_i745.NearbyPlacesDatasource>()),
@@ -161,6 +191,21 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i942.SearchNearbyPlacesUseCase>(
       () => _i942.SearchNearbyPlacesUseCase(gh<_i263.NearbyPlacesRepo>()),
     );
+    gh.factory<_i566.LoadExplorerFiltersUseCase>(
+      () => _i566.LoadExplorerFiltersUseCase(
+        gh<_i320.ExplorerFilterPreferencesRepo>(),
+      ),
+    );
+    gh.factory<_i458.ResetExplorerFiltersUseCase>(
+      () => _i458.ResetExplorerFiltersUseCase(
+        gh<_i320.ExplorerFilterPreferencesRepo>(),
+      ),
+    );
+    gh.factory<_i936.SaveExplorerFiltersUseCase>(
+      () => _i936.SaveExplorerFiltersUseCase(
+        gh<_i320.ExplorerFilterPreferencesRepo>(),
+      ),
+    );
     gh.factory<_i154.LocationCubit>(
       () => _i154.LocationCubit(
         gh<_i792.CheckLocationAccessUseCase>(),
@@ -168,9 +213,6 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i830.GetCurrentLocationUseCase>(),
         gh<_i663.OpenLocationSettingsUseCase>(),
       ),
-    );
-    gh.factory<_i531.ExplorerCubit>(
-      () => _i531.ExplorerCubit(gh<_i942.SearchNearbyPlacesUseCase>()),
     );
     gh.factory<_i1035.GeocodeCityUseCase>(
       () => _i1035.GeocodeCityUseCase(gh<_i730.CitySearchRepo>()),
@@ -193,6 +235,14 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i1035.GeocodeCityUseCase>(),
         gh<_i521.GetRecentCityUseCase>(),
         gh<_i405.SelectCityUseCase>(),
+      ),
+    );
+    gh.factory<_i531.ExplorerCubit>(
+      () => _i531.ExplorerCubit(
+        gh<_i942.SearchNearbyPlacesUseCase>(),
+        gh<_i566.LoadExplorerFiltersUseCase>(),
+        gh<_i936.SaveExplorerFiltersUseCase>(),
+        gh<_i458.ResetExplorerFiltersUseCase>(),
       ),
     );
     return this;

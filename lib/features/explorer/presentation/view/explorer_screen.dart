@@ -1,5 +1,6 @@
 import 'package:city_guide_app/features/explorer/presentation/view_model/explorer_cubit.dart';
 import 'package:city_guide_app/features/explorer/presentation/view_model/explorer_state.dart';
+import 'package:city_guide_app/features/explorer/presentation/widgets/explorer_filter_sheet.dart';
 import 'package:city_guide_app/features/explorer/presentation/widgets/explorer_list_content.dart';
 import 'package:city_guide_app/features/explorer/presentation/widgets/explorer_map_content.dart';
 import 'package:city_guide_app/features/explorer/presentation/widgets/google_explorer_map.dart';
@@ -37,24 +38,42 @@ class ExplorerScreen extends StatelessWidget {
               currentIndex: 0,
               onDestinationSelected: (index) =>
                   _onDestinationSelected(index, onChooseCity),
-              child: state.viewMode == ExplorerViewMode.map
-                  ? ExplorerMapContent(
-                      state: state,
-                      mapBuilder: mapBuilder ?? _buildGoogleMap,
-                      onPlaceSelected: cubit.selectPlace,
-                      onShowList: () =>
-                          cubit.changeViewMode(ExplorerViewMode.list),
-                      onZoomChanged: cubit.updateZoom,
-                      onChooseCity: onChooseCity,
-                    )
-                  : ExplorerListContent(
-                      state: state,
-                      onPlaceSelected: cubit.selectPlaceFromList,
-                      onShowMap: () =>
-                          cubit.changeViewMode(ExplorerViewMode.map),
-                      onChooseCity: onChooseCity,
-                      onListScrollOffsetChanged: cubit.updateListScrollOffset,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: state.viewMode == ExplorerViewMode.map
+                        ? ExplorerMapContent(
+                            state: state,
+                            mapBuilder: mapBuilder ?? _buildGoogleMap,
+                            onPlaceSelected: cubit.selectPlace,
+                            onShowList: () =>
+                                cubit.changeViewMode(ExplorerViewMode.list),
+                            onZoomChanged: cubit.updateZoom,
+                            onOpenFilters: () =>
+                                _showFilters(context, state, cubit),
+                            onChooseCity: onChooseCity,
+                          )
+                        : ExplorerListContent(
+                            state: state,
+                            onPlaceSelected: cubit.selectPlaceFromList,
+                            onShowMap: () =>
+                                cubit.changeViewMode(ExplorerViewMode.map),
+                            onChooseCity: onChooseCity,
+                            onOpenFilters: () =>
+                                _showFilters(context, state, cubit),
+                            onListScrollOffsetChanged:
+                                cubit.updateListScrollOffset,
+                          ),
+                  ),
+                  if (state.isRefreshing)
+                    const Align(
+                      alignment: Alignment.topCenter,
+                      child: LinearProgressIndicator(
+                        key: Key('explorer-filter-refreshing'),
+                      ),
                     ),
+                ],
+              ),
             );
           }
           if (state is ExplorerError) {
@@ -87,4 +106,20 @@ class ExplorerScreen extends StatelessWidget {
   static void _onDestinationSelected(int index, VoidCallback onChooseCity) {
     if (index == 1) onChooseCity();
   }
+
+  static Future<void> _showFilters(
+    BuildContext context,
+    ExplorerLoaded state,
+    ExplorerCubit cubit,
+  ) => showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    useSafeArea: true,
+    builder: (_) => ExplorerFilterSheet(
+      filters: state.filters,
+      onCategorySelected: cubit.changeCategory,
+      onRadiusSelected: cubit.changeRadius,
+      onReset: cubit.resetFilters,
+    ),
+  );
 }

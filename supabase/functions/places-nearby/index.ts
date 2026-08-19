@@ -33,6 +33,7 @@ const rateLimit = 30;
 const rateWindowMs = 60_000;
 const providerTimeoutMs = 8_000;
 const allowedCategories = new Set(["cafe", "restaurant", "pharmacy"]);
+const allowedRadiiMeters = new Set([1000, 3000, 5000, 10000]);
 
 Deno.serve(async (request: Request): Promise<Response> => {
   const methodError = requireMethod(request, "POST");
@@ -271,11 +272,10 @@ const parseNearbyRequest = (body: unknown): NearbyRequest | Response => {
   }
   if (typeof radiusMeters !== "number" ||
     !Number.isInteger(radiusMeters) ||
-    radiusMeters < 100 ||
-    radiusMeters > 10000) {
+    !allowedRadiiMeters.has(radiusMeters)) {
     return errorResponse(
       "invalid_radius",
-      "Radius must be between 100 and 10000 meters.",
+      "Radius must be 1000, 3000, 5000, or 10000 meters.",
       400,
     );
   }

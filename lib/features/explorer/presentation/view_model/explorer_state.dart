@@ -1,3 +1,4 @@
+import 'package:city_guide_app/features/explorer/domain/entity/explorer_filters.dart';
 import 'package:city_guide_app/shared/domain/place_summary.dart';
 import 'package:city_guide_app/shared/domain/search_center.dart';
 import 'package:equatable/equatable.dart';
@@ -25,6 +26,7 @@ final class ExplorerLoaded extends ExplorerState {
     this.viewMode = ExplorerViewMode.map,
     this.zoom = 14,
     this.listScrollOffset = 0,
+    this.filters = const ExplorerFilters(),
   }) : filteredPlaces = filteredPlaces ?? allPlaces;
 
   final SearchCenter searchCenter;
@@ -35,6 +37,7 @@ final class ExplorerLoaded extends ExplorerState {
   final ExplorerViewMode viewMode;
   final double zoom;
   final double listScrollOffset;
+  final ExplorerFilters filters;
 
   List<PlaceSummary> get places => filteredPlaces;
 
@@ -55,15 +58,21 @@ final class ExplorerLoaded extends ExplorerState {
     viewMode,
     zoom,
     listScrollOffset,
+    filters,
   ];
 }
 
 final class ExplorerError extends ExplorerState {
-  const ExplorerError({required this.searchCenter, required this.message});
+  const ExplorerError({
+    required this.searchCenter,
+    required this.message,
+    this.filters = const ExplorerFilters(),
+  });
 
   final SearchCenter searchCenter;
   final String message;
+  final ExplorerFilters filters;
 
   @override
-  List<Object?> get props => [searchCenter, message];
+  List<Object?> get props => [searchCenter, message, filters];
 }

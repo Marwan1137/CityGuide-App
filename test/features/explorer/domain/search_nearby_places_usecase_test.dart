@@ -52,15 +52,19 @@ void main() {
     verifyNever(() => repo.searchNearby(any()));
   });
 
-  test('rejects invalid radius and result count', () async {
+  test('rejects unsupported radius boundaries and result count', () async {
     final radius = await useCase(
       const NearbySearchRequest(center: center, radiusMeters: 99),
+    );
+    final unsupportedRadius = await useCase(
+      const NearbySearchRequest(center: center, radiusMeters: 2000),
     );
     final count = await useCase(
       const NearbySearchRequest(center: center, maxResults: 21),
     );
 
     expect(radius, isA<Error<List<PlaceSummary>>>());
+    expect(unsupportedRadius, isA<Error<List<PlaceSummary>>>());
     expect(count, isA<Error<List<PlaceSummary>>>());
     verifyNever(() => repo.searchNearby(any()));
   });

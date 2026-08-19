@@ -77,4 +77,38 @@ void main() {
       );
     },
   );
+
+  test('calculates distance and removes places outside the radius', () async {
+    when(() => datasource.searchNearby(any())).thenAnswer(
+      (_) async => const ApiSuccess([
+        PlaceModel(
+          id: 'inside',
+          name: 'Inside boundary',
+          category: 'cafe',
+          latitude: 0.0089,
+          longitude: 0,
+          distanceMeters: 1,
+        ),
+        PlaceModel(
+          id: 'outside',
+          name: 'Outside boundary',
+          category: 'cafe',
+          latitude: 0.0091,
+          longitude: 0,
+          distanceMeters: 1,
+        ),
+      ]),
+    );
+
+    final result = await repo.searchNearby(
+      const NearbySearchRequest(
+        center: GeoPoint(latitude: 0, longitude: 0),
+        radiusMeters: 1000,
+      ),
+    );
+    final places = (result as Success<List<PlaceSummary>>).data;
+
+    expect(places.map((place) => place.id), ['inside']);
+    expect(places.single.distanceMeters, closeTo(990, 2));
+  });
 }
