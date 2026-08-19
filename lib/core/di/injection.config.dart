@@ -15,6 +15,30 @@ import 'package:city_guide_app/core/config/app_config.dart' as _i310;
 import 'package:city_guide_app/core/di/register_module.dart' as _i378;
 import 'package:city_guide_app/core/services/supabase_session_service.dart'
     as _i150;
+import 'package:city_guide_app/features/city_search/data/data_source_contract/city_search_datasource.dart'
+    as _i529;
+import 'package:city_guide_app/features/city_search/data/data_source_impl/local_city_search_datasource_impl.dart'
+    as _i368;
+import 'package:city_guide_app/features/city_search/data/data_source_impl/remote_city_search_datasource_impl.dart'
+    as _i717;
+import 'package:city_guide_app/features/city_search/data/data_source_impl/shared_preferences_city_search_store.dart'
+    as _i903;
+import 'package:city_guide_app/features/city_search/data/repo_impl/city_search_repo_impl.dart'
+    as _i105;
+import 'package:city_guide_app/features/city_search/domain/repo_contract/city_search_repo.dart'
+    as _i730;
+import 'package:city_guide_app/features/city_search/domain/use_cases/geocode_city_usecase.dart'
+    as _i1035;
+import 'package:city_guide_app/features/city_search/domain/use_cases/get_recent_city_usecase.dart'
+    as _i521;
+import 'package:city_guide_app/features/city_search/domain/use_cases/get_search_center_usecase.dart'
+    as _i1062;
+import 'package:city_guide_app/features/city_search/domain/use_cases/search_cities_usecase.dart'
+    as _i624;
+import 'package:city_guide_app/features/city_search/domain/use_cases/select_city_usecase.dart'
+    as _i405;
+import 'package:city_guide_app/features/city_search/presentation/view_model/city_search_cubit.dart'
+    as _i109;
 import 'package:city_guide_app/features/location/data/data_source_contract/location_datasource.dart'
     as _i632;
 import 'package:city_guide_app/features/location/data/data_source_contract/location_platform_gateway.dart'
@@ -59,6 +83,9 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i798.PermissionRequestStore>(
       () => _i610.SharedPreferencesPermissionRequestStore(),
     );
+    gh.lazySingleton<_i529.CitySearchPersistenceStore>(
+      () => _i903.SharedPreferencesCitySearchStore(),
+    );
     gh.lazySingleton<_i632.LocationDatasource>(
       () => _i1046.GeolocatorLocationDatasource(
         gh<_i945.ApiExecutor>(),
@@ -69,11 +96,24 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i361.Dio>(
       () => registerModule.dio(gh<_i310.AppConfig>()),
     );
+    gh.lazySingleton<_i529.LocalCitySearchDatasource>(
+      () => _i368.LocalCitySearchDatasourceImpl(
+        gh<_i945.ApiExecutor>(),
+        gh<_i529.CitySearchPersistenceStore>(),
+      ),
+    );
     gh.lazySingleton<_i150.SupabaseSessionService>(
       () => _i150.SupabaseSessionService(gh<_i310.AppConfig>()),
     );
     gh.lazySingleton<_i307.ApiManager>(
       () => _i307.ApiManager(gh<_i361.Dio>(), gh<_i945.ApiExecutor>()),
+    );
+    gh.lazySingleton<_i529.RemoteCitySearchDatasource>(
+      () => _i717.RemoteCitySearchDatasourceImpl(
+        gh<_i307.ApiManager>(),
+        gh<_i310.AppConfig>(),
+        gh<_i150.SupabaseSessionService>(),
+      ),
     );
     gh.lazySingleton<_i733.LocationRepo>(
       () => _i28.LocationRepoImpl(gh<_i632.LocationDatasource>()),
@@ -90,12 +130,41 @@ extension GetItInjectableX on _i174.GetIt {
     gh.factory<_i1060.RequestLocationAccessUseCase>(
       () => _i1060.RequestLocationAccessUseCase(gh<_i733.LocationRepo>()),
     );
+    gh.lazySingleton<_i730.CitySearchRepo>(
+      () => _i105.CitySearchRepoImpl(
+        gh<_i529.LocalCitySearchDatasource>(),
+        gh<_i529.RemoteCitySearchDatasource>(),
+      ),
+    );
     gh.factory<_i154.LocationCubit>(
       () => _i154.LocationCubit(
         gh<_i792.CheckLocationAccessUseCase>(),
         gh<_i1060.RequestLocationAccessUseCase>(),
         gh<_i830.GetCurrentLocationUseCase>(),
         gh<_i663.OpenLocationSettingsUseCase>(),
+      ),
+    );
+    gh.factory<_i1035.GeocodeCityUseCase>(
+      () => _i1035.GeocodeCityUseCase(gh<_i730.CitySearchRepo>()),
+    );
+    gh.factory<_i521.GetRecentCityUseCase>(
+      () => _i521.GetRecentCityUseCase(gh<_i730.CitySearchRepo>()),
+    );
+    gh.factory<_i1062.GetSearchCenterUseCase>(
+      () => _i1062.GetSearchCenterUseCase(gh<_i730.CitySearchRepo>()),
+    );
+    gh.factory<_i624.SearchCitiesUseCase>(
+      () => _i624.SearchCitiesUseCase(gh<_i730.CitySearchRepo>()),
+    );
+    gh.factory<_i405.SelectCityUseCase>(
+      () => _i405.SelectCityUseCase(gh<_i730.CitySearchRepo>()),
+    );
+    gh.factory<_i109.CitySearchCubit>(
+      () => _i109.CitySearchCubit(
+        gh<_i624.SearchCitiesUseCase>(),
+        gh<_i1035.GeocodeCityUseCase>(),
+        gh<_i521.GetRecentCityUseCase>(),
+        gh<_i405.SelectCityUseCase>(),
       ),
     );
     return this;

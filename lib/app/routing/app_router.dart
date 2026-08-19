@@ -1,7 +1,11 @@
 import 'package:city_guide_app/core/di/injection.dart';
+import 'package:city_guide_app/features/city_search/presentation/view/city_search_screen.dart';
+import 'package:city_guide_app/features/city_search/presentation/view/explorer_handoff_screen.dart';
+import 'package:city_guide_app/features/city_search/presentation/view_model/city_search_cubit.dart';
 import 'package:city_guide_app/features/home/presentation/pages/home_page.dart';
 import 'package:city_guide_app/features/location/presentation/view/location_screen.dart';
 import 'package:city_guide_app/features/location/presentation/view_model/location_cubit.dart';
+import 'package:city_guide_app/shared/domain/search_center.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +13,8 @@ import 'package:go_router/go_router.dart';
 abstract final class AppRoutes {
   static const home = '/';
   static const location = '/location';
+  static const citySearch = '/city-search';
+  static const explorer = '/explorer';
 }
 
 abstract final class AppRouter {
@@ -18,10 +24,30 @@ abstract final class AppRouter {
       GoRoute(path: AppRoutes.home, builder: (_, _) => const HomePage()),
       GoRoute(
         path: AppRoutes.location,
-        builder: (_, _) => BlocProvider(
+        builder: (context, _) => BlocProvider(
           create: (_) => getIt<LocationCubit>()..initialize(),
-          child: const LocationScreen(),
+          child: LocationScreen(
+            onChooseCity: () => context.go(AppRoutes.citySearch),
+          ),
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.citySearch,
+        builder: (context, _) => BlocProvider(
+          create: (_) => getIt<CitySearchCubit>()..initialize(),
+          child: CitySearchScreen(
+            onRetryDeviceLocation: () => context.go(AppRoutes.location),
+            onCenterSelected: (center) =>
+                context.go(AppRoutes.explorer, extra: center),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: AppRoutes.explorer,
+        redirect: (_, state) =>
+            state.extra is SearchCenter ? null : AppRoutes.citySearch,
+        builder: (_, state) =>
+            ExplorerHandoffScreen(searchCenter: state.extra! as SearchCenter),
       ),
     ],
     errorBuilder: (_, _) => const _UnknownRoutePage(),

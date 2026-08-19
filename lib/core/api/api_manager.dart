@@ -26,11 +26,13 @@ class ApiManager {
   Future<ApiResult<Map<String, dynamic>>> post(
     String path, {
     Object? data,
+    Map<String, dynamic>? headers,
     CancelToken? cancelToken,
   }) => _executor.execute(() async {
     final response = await _dio.post<Map<String, dynamic>>(
       path,
       data: data,
+      options: Options(headers: headers),
       cancelToken: cancelToken,
     );
     return response.data ?? <String, dynamic>{};

@@ -13,6 +13,13 @@ class SupabaseSessionService {
   bool get isInitialized => _initialized;
   bool get hasSession => _hasSession;
 
+  Future<String?> getAccessToken() async {
+    await initialize();
+    return _initialized
+        ? Supabase.instance.client.auth.currentSession?.accessToken
+        : null;
+  }
+
   Future<void> initialize() async {
     if (_initialized || !_config.hasSupabaseConfiguration) return;
 
