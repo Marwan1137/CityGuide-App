@@ -79,4 +79,5 @@ lib/
 ```
 
 See [docs/architecture.md](docs/architecture.md) for boundaries and the feature
-branch roadmap.
+branch roadmap. Feature 1 manual verification is documented in
+[docs/testing/location_permission_matrix.md](docs/testing/location_permission_matrix.md).
