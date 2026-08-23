@@ -20,6 +20,14 @@ final class CacheFailure extends Failure {
   const CacheFailure(super.message, {super.cause});
 }
 
+final class TimeoutFailure extends Failure {
+  const TimeoutFailure([super.message = 'The request took too long. Please try again.']);
+}
+
+final class QuotaFailure extends Failure {
+  const QuotaFailure(super.message, {super.code});
+}
+
 final class ValidationFailure extends Failure {
   const ValidationFailure(super.message, {super.code});
 }

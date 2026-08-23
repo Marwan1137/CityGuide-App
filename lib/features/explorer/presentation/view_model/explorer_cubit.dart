@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:city_guide_app/core/error/failure.dart';
+import 'package:city_guide_app/features/custom_places/domain/entity/custom_place.dart';
+import 'package:city_guide_app/features/custom_places/domain/use_cases/watch_custom_places_usecase.dart';
 import 'package:city_guide_app/features/explorer/domain/entity/explorer_filters.dart';
 import 'package:city_guide_app/features/explorer/domain/entity/nearby_search_request.dart';
 import 'package:city_guide_app/features/explorer/domain/entity/search_request_cancellation.dart';
@@ -14,22 +18,26 @@ import 'package:city_guide_app/shared/domain/search_center.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:injectable/injectable.dart';
 
+
 @injectable
 class ExplorerCubit extends Cubit<ExplorerState> {
   ExplorerCubit(
-    this._searchNearby,
-    this._loadFilters,
-    this._saveFilters,
-    this._resetFilters,
-  ) : super(const ExplorerLoading());
+      this._searchNearby,
+      this._loadFilters,
+      this._saveFilters,
+      this._resetFilters,
+      this._watchCustomPlaces,
+      ) : super(const ExplorerLoading());
 
   final SearchNearbyPlacesUseCase _searchNearby;
   final LoadExplorerFiltersUseCase _loadFilters;
   final SaveExplorerFiltersUseCase _saveFilters;
   final ResetExplorerFiltersUseCase _resetFilters;
+  final WatchCustomPlacesUseCase _watchCustomPlaces;
   SearchCenter? _searchCenter;
   ExplorerFilters _filters = const ExplorerFilters();
   SearchRequestCancellation? _activeCancellation;
+  StreamSubscription<List<CustomPlace>>? _customPlacesSubscription;
   int _requestSequence = 0;
 
   static const double _searchAreaThresholdMeters = 150;
@@ -45,6 +53,19 @@ class ExplorerCubit extends Cubit<ExplorerState> {
       onFailure: (_) => const ExplorerFilters(),
     );
     await _load(searchCenter, _filters);
+    _customPlacesSubscription ??= _watchCustomPlaces().listen(_onCustomPlaces);
+  }
+
+  void _onCustomPlaces(List<CustomPlace> customPlaces) {
+    final current = state;
+    if (current is! ExplorerLoaded) return;
+    emit(
+      current.copyWith(
+        customPlaces: customPlaces
+            .map((place) => place.toPlaceSummary())
+            .toList(growable: false),
+      ),
+    );
   }
 
   Future<void> retry() async {
@@ -165,7 +186,7 @@ class ExplorerCubit extends Cubit<ExplorerState> {
   void selectPlace(String placeId) {
     final current = state;
     if (current is! ExplorerLoaded ||
-        !current.filteredPlaces.any((place) => place.id == placeId)) {
+        !current.allVisiblePlaces.any((place) => place.id == placeId)) {
       return;
     }
     _emitLoaded(current, selectedPlaceId: placeId);
@@ -174,7 +195,7 @@ class ExplorerCubit extends Cubit<ExplorerState> {
   void selectPlaceFromList(String placeId) {
     final current = state;
     if (current is! ExplorerLoaded ||
-        !current.filteredPlaces.any((place) => place.id == placeId)) {
+        !current.allVisiblePlaces.any((place) => place.id == placeId)) {
       return;
     }
     _emitLoaded(
@@ -389,6 +410,7 @@ class ExplorerCubit extends Cubit<ExplorerState> {
   @override
   Future<void> close() {
     _invalidateRequests();
+    _customPlacesSubscription?.cancel();
     return super.close();
   }
 }

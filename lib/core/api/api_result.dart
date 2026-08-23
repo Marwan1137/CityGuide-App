@@ -36,6 +36,7 @@ enum ApiErrorType {
   timeout,
   unauthorized,
   server,
+  quota,
   parsing,
   unknown,
 }

@@ -19,11 +19,15 @@ import 'package:city_guide_app/shared/domain/place_summary.dart';
 import 'package:city_guide_app/shared/domain/search_center.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:city_guide_app/features/custom_places/domain/repo_contract/custom_places_repo.dart';
+import 'package:city_guide_app/features/custom_places/domain/use_cases/watch_custom_places_usecase.dart';
 
 class _MockRepo extends Mock implements NearbyPlacesRepo {}
 
 class _MockFilterPreferencesRepo extends Mock
     implements ExplorerFilterPreferencesRepo {}
+
+class _MockCustomPlacesRepo extends Mock implements CustomPlacesRepo {}
 
 void main() {
   late _MockRepo repo;
@@ -32,6 +36,8 @@ void main() {
   late LoadExplorerFiltersUseCase loadFilters;
   late SaveExplorerFiltersUseCase saveFilters;
   late ResetExplorerFiltersUseCase resetFilters;
+  late _MockCustomPlacesRepo customPlacesRepo;
+  late WatchCustomPlacesUseCase watchCustomPlaces;
 
   const center = SearchCenter(
     point: GeoPoint(latitude: 30.0444, longitude: 31.2357),
@@ -73,17 +79,27 @@ void main() {
     loadFilters = LoadExplorerFiltersUseCase(filterRepo);
     saveFilters = SaveExplorerFiltersUseCase(filterRepo);
     resetFilters = ResetExplorerFiltersUseCase(filterRepo);
+    customPlacesRepo = _MockCustomPlacesRepo();
+    watchCustomPlaces = WatchCustomPlacesUseCase(customPlacesRepo);
     when(
-      () => filterRepo.load(),
+          () => filterRepo.load(),
     ).thenAnswer((_) async => const Success(ExplorerFilters()));
     when(
-      () => filterRepo.save(any()),
+          () => filterRepo.save(any()),
     ).thenAnswer((_) async => const Success(null));
     when(() => filterRepo.reset()).thenAnswer((_) async => const Success(null));
+    when(
+          () => customPlacesRepo.watchCustomPlaces(),
+    ).thenAnswer((_) => const Stream.empty());
   });
 
-  ExplorerCubit buildCubit() =>
-      ExplorerCubit(useCase, loadFilters, saveFilters, resetFilters);
+  ExplorerCubit buildCubit() => ExplorerCubit(
+    useCase,
+    loadFilters,
+    saveFilters,
+    resetFilters,
+    watchCustomPlaces,
+  );
 
   blocTest<ExplorerCubit, ExplorerState>(
     'loads cafes and selects the first result',

@@ -20,10 +20,20 @@ dependencies:
   shared_preferences: ^2.5.5
   supabase_flutter: ^2.17.2
   google_maps_flutter: ^2.18.0
+  url_launcher: ^6.3.2
+  share_plus: ^13.3.0
+  google_maps_flutter_android: ^2.19.12
+  drift: ^2.34.3
+  sqlite3_flutter_libs: ^0.6.0+eol
+  path_provider: ^2.1.6
+  path: ^1.9.1
+  uuid: ^4.6.0
+  connectivity_plus: ^7.3.1
 
 dev_dependencies:
   bloc_test: ^10.0.0
   build_runner: ^2.15.1
+  drift_dev: ^2.34.5
   flutter_lints: ^6.0.0
   flutter_test:
     sdk: flutter

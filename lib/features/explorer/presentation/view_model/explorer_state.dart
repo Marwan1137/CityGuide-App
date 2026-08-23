@@ -21,6 +21,7 @@ final class ExplorerLoaded extends ExplorerState {
     required this.searchCenter,
     required this.allPlaces,
     List<PlaceSummary>? filteredPlaces,
+    this.customPlaces = const [],
     this.selectedPlaceId,
     this.isRefreshing = false,
     this.viewMode = ExplorerViewMode.map,
@@ -34,6 +35,7 @@ final class ExplorerLoaded extends ExplorerState {
   final SearchCenter searchCenter;
   final List<PlaceSummary> allPlaces;
   final List<PlaceSummary> filteredPlaces;
+  final List<PlaceSummary> customPlaces;
   final String? selectedPlaceId;
   final bool isRefreshing;
   final ExplorerViewMode viewMode;
@@ -47,8 +49,10 @@ final class ExplorerLoaded extends ExplorerState {
 
   List<PlaceSummary> get places => filteredPlaces;
 
+  List<PlaceSummary> get allVisiblePlaces => [...filteredPlaces, ...customPlaces];
+
   PlaceSummary? get selectedPlace {
-    for (final place in filteredPlaces) {
+    for (final place in allVisiblePlaces) {
       if (place.id == selectedPlaceId) return place;
     }
     return null;
@@ -58,6 +62,7 @@ final class ExplorerLoaded extends ExplorerState {
     SearchCenter? searchCenter,
     List<PlaceSummary>? allPlaces,
     List<PlaceSummary>? filteredPlaces,
+    List<PlaceSummary>? customPlaces,
     Object? selectedPlaceId = _unchanged,
     bool? isRefreshing,
     ExplorerViewMode? viewMode,
@@ -67,10 +72,11 @@ final class ExplorerLoaded extends ExplorerState {
     Object? pendingSearchCenter = _unchanged,
     Object? refreshErrorMessage = _unchanged,
   }) => ExplorerLoaded(
-    searchCenter: searchCenter ?? this.searchCenter,
-    allPlaces: allPlaces ?? this.allPlaces,
-    filteredPlaces: filteredPlaces ?? this.filteredPlaces,
-    selectedPlaceId: identical(selectedPlaceId, _unchanged)
+  searchCenter: searchCenter ?? this.searchCenter,
+  allPlaces: allPlaces ?? this.allPlaces,
+  filteredPlaces: filteredPlaces ?? this.filteredPlaces,
+  customPlaces: customPlaces ?? this.customPlaces,
+  selectedPlaceId: identical(selectedPlaceId, _unchanged)
         ? this.selectedPlaceId
         : selectedPlaceId as String?,
     isRefreshing: isRefreshing ?? this.isRefreshing,
@@ -88,10 +94,11 @@ final class ExplorerLoaded extends ExplorerState {
 
   @override
   List<Object?> get props => [
-    searchCenter,
-    allPlaces,
-    filteredPlaces,
-    selectedPlaceId,
+  searchCenter,
+  allPlaces,
+  filteredPlaces,
+  customPlaces,
+  selectedPlaceId,
     isRefreshing,
     viewMode,
     zoom,

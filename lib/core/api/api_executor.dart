@@ -63,6 +63,13 @@ class ApiExecutor {
         statusCode: statusCode,
       );
     }
+    if (statusCode == 429) {
+      return ApiError(
+        type: ApiErrorType.quota,
+        message: "You've hit today's usage limit. Please try again later.",
+        statusCode: statusCode,
+      );
+    }
     if (statusCode != null) {
       return ApiError(
         type: ApiErrorType.server,
