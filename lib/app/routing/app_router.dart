@@ -77,6 +77,8 @@ abstract final class AppRouter {
       ),
       GoRoute(
         path: '/place/:id',
+        redirect: (_, state) =>
+        state.extra is PlaceSummary ? null : AppRoutes.citySearch,
         builder: (context, state) {
           final place = state.extra! as PlaceSummary;
           return BlocProvider(

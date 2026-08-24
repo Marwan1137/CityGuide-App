@@ -25,6 +25,8 @@ final class CustomPlaceFormState extends Equatable {
 
   bool get canSave => name.trim().isNotEmpty && !isSaving;
 
+  static const _unchanged = Object();
+
   CustomPlaceFormState copyWith({
     GeoPoint? location,
     String? name,
@@ -32,7 +34,7 @@ final class CustomPlaceFormState extends Equatable {
     String? address,
     String? note,
     bool? isSaving,
-    String? errorMessage,
+    Object? errorMessage = _unchanged,
     bool? saved,
   }) => CustomPlaceFormState(
     location: location ?? this.location,
@@ -41,7 +43,9 @@ final class CustomPlaceFormState extends Equatable {
     address: address ?? this.address,
     note: note ?? this.note,
     isSaving: isSaving ?? this.isSaving,
-    errorMessage: errorMessage,
+    errorMessage: identical(errorMessage, _unchanged)
+        ? this.errorMessage
+        : errorMessage as String?,
     saved: saved ?? this.saved,
   );
 
