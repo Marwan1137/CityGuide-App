@@ -45,7 +45,7 @@ class _ExplorerListContentState extends State<ExplorerListContent> {
 
   @override
   Widget build(BuildContext context) {
-    final places = widget.state.filteredPlaces;
+    final places = widget.state.allVisiblePlaces;
     return SafeArea(
       child: Column(
         children: [

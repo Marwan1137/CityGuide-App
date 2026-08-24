@@ -3,6 +3,7 @@ import 'package:city_guide_app/features/explorer/presentation/widgets/explorer_m
 import 'package:city_guide_app/shared/domain/geo_point.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:go_router/go_router.dart';
 
 class GoogleExplorerMap extends StatefulWidget {
   const GoogleExplorerMap({
@@ -54,7 +55,7 @@ class _GoogleExplorerMapState extends State<GoogleExplorerMap> {
       ),
       clusterManagers: {_clusterManager},
       markers: ExplorerMarkerFactory.buildMarkers(
-        places: widget.state.filteredPlaces,
+        places: widget.state.allVisiblePlaces,
         selectedPlaceId: widget.state.selectedPlaceId,
         onPlaceSelected: widget.onPlaceSelected,
       ),
@@ -72,6 +73,13 @@ class _GoogleExplorerMapState extends State<GoogleExplorerMap> {
         );
       },
       onCameraIdle: () => widget.onCameraIdle(_latestTarget, _latestZoom),
+      onLongPress: (position) => context.push(
+        '/add-custom-place',
+        extra: GeoPoint(
+          latitude: position.latitude,
+          longitude: position.longitude,
+        ),
+      ),
     );
   }
 

@@ -4,6 +4,7 @@ import 'package:city_guide_app/shared/domain/geo_point.dart';
 import 'package:city_guide_app/shared/domain/place_category.dart';
 import 'package:city_guide_app/shared/widgets/empty_state_view.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 typedef ExplorerMapBuilder =
     Widget Function(
@@ -112,7 +113,7 @@ class ExplorerMapContent extends StatelessWidget {
             ],
           ),
         ),
-        if (state.places.isEmpty)
+        if (state.allVisiblePlaces.isEmpty)
           Positioned.fill(
             child: IgnorePointer(
               child: Container(
@@ -135,7 +136,8 @@ class ExplorerMapContent extends StatelessWidget {
             bottom: 12,
             child: PlaceQuickPreview(
               place: selectedPlace,
-              onTap: () => onPlaceSelected(selectedPlace.id),
+              onTap: () =>
+                  context.go('/place/${selectedPlace.id}', extra: selectedPlace),
             ),
           ),
       ],
