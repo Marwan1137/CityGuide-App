@@ -183,6 +183,22 @@ class _PlaceDetailsContentState extends State<PlaceDetailsContent> {
                         const SizedBox(height: 12),
                         _PlaceMapPreview(location: place.location),
                       ],
+                      if (place.note case final note?) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.notes_outlined, size: 18),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                note,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       if (detail?.weeklyHours.isNotEmpty ?? false) ...[
                         const Divider(height: 32),
                         PlaceWeeklyHours(weeklyHours: detail!.weeklyHours),

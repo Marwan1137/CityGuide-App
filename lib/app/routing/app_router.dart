@@ -113,6 +113,7 @@ abstract final class AppRouter {
           return BlocProvider(
             create: (_) => CustomPlaceFormCubit(
               getIt<CreateCustomPlaceUseCase>(),
+              getIt<ToggleFavoriteUseCase>(),
               initialLocation,
             ),
             child: const AddCustomPlaceScreen(),

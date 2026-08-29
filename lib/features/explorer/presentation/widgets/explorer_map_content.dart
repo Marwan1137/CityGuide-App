@@ -137,7 +137,7 @@ class ExplorerMapContent extends StatelessWidget {
             child: PlaceQuickPreview(
               place: selectedPlace,
               onTap: () =>
-                  context.go('/place/${selectedPlace.id}', extra: selectedPlace),
+                  context.push('/place/${selectedPlace.id}', extra: selectedPlace),
             ),
           ),
       ],

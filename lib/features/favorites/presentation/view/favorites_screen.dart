@@ -78,9 +78,7 @@ class FavoritesScreen extends StatelessWidget {
                         selected: state.categoryFilter == null,
                         onTap: () => cubit.setCategoryFilter(null),
                       ),
-                      for (final category in PlaceCategory.values.where(
-                            (c) => c != PlaceCategory.custom,
-                      ))
+                      for (final category in PlaceCategory.values)
                         Padding(
                           padding: const EdgeInsets.only(left: 8),
                           child: _FilterChip(
@@ -132,7 +130,7 @@ class FavoritesScreen extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: FavoriteCard(
                           favorite: favorite,
-                          onTap: () => context.go(
+                          onTap: () => context.push(
                             '/place/${favorite.place.id}',
                             extra: favorite.place,
                           ),

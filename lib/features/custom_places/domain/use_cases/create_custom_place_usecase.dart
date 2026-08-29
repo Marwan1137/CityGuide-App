@@ -1,4 +1,5 @@
 import 'package:city_guide_app/core/utils/app_result.dart';
+import 'package:city_guide_app/features/custom_places/domain/entity/custom_place.dart';
 import 'package:city_guide_app/features/custom_places/domain/repo_contract/custom_places_repo.dart';
 import 'package:city_guide_app/shared/domain/geo_point.dart';
 import 'package:city_guide_app/shared/domain/place_category.dart';
@@ -10,7 +11,7 @@ class CreateCustomPlaceUseCase {
 
   final CustomPlacesRepo _repo;
 
-  Future<AppResult<void>> call({
+  Future<AppResult<CustomPlace>> call({
     required String name,
     required PlaceCategory category,
     required GeoPoint location,

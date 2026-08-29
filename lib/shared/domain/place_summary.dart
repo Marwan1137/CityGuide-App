@@ -9,6 +9,7 @@ final class PlaceSummary extends Equatable {
     required this.category,
     required this.location,
     this.address,
+    this.note,
     this.rating,
     this.photoUrl,
     this.distanceMeters,
@@ -19,6 +20,7 @@ final class PlaceSummary extends Equatable {
   final PlaceCategory category;
   final GeoPoint location;
   final String? address;
+  final String? note;
   final double? rating;
   final String? photoUrl;
   final double? distanceMeters;
@@ -30,6 +32,7 @@ final class PlaceSummary extends Equatable {
     category,
     location,
     address,
+    note,
     rating,
     photoUrl,
     distanceMeters,

@@ -49,6 +49,26 @@ class FavoriteCard extends StatelessWidget {
                     Text(place.name, style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 2),
                     Text(place.category.label),
+                    if (place.address case final address?) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        address,
+                        style: Theme.of(context).textTheme.bodySmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if (place.note case final note?) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        note,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontStyle: FontStyle.italic,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                     const SizedBox(height: 4),
                     Text(
                       'Saved ${_relativeDay(favorite.savedAt)}',

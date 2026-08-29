@@ -22,7 +22,7 @@ class CustomPlacesRepoImpl implements CustomPlacesRepo {
   );
 
   @override
-  Future<AppResult<void>> createCustomPlace({
+  Future<AppResult<CustomPlace>> createCustomPlace({
     required String name,
     required PlaceCategory category,
     required GeoPoint location,
@@ -30,11 +30,12 @@ class CustomPlacesRepoImpl implements CustomPlacesRepo {
     String? note,
   }) async {
     final now = DateTime.now();
+    final id = const Uuid().v4();
     await _database
         .into(_database.customPlaceEntries)
         .insert(
       CustomPlaceEntriesCompanion.insert(
-        id: const Uuid().v4(),
+        id: id,
         name: name,
         category: category.name,
         latitude: location.latitude,
@@ -45,7 +46,18 @@ class CustomPlacesRepoImpl implements CustomPlacesRepo {
         updatedAt: now,
       ),
     );
-    return const Success(null);
+    return Success(
+      CustomPlace(
+        id: id,
+        name: name,
+        category: category,
+        location: location,
+        createdAt: now,
+        updatedAt: now,
+        address: address,
+        note: note,
+      ),
+    );
   }
 
   @override

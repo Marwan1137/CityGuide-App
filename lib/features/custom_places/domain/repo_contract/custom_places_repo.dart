@@ -6,7 +6,7 @@ import 'package:city_guide_app/shared/domain/place_category.dart';
 abstract interface class CustomPlacesRepo {
   Stream<List<CustomPlace>> watchCustomPlaces();
 
-  Future<AppResult<void>> createCustomPlace({
+  Future<AppResult<CustomPlace>> createCustomPlace({
     required String name,
     required PlaceCategory category,
     required GeoPoint location,

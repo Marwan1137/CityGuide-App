@@ -1,14 +1,20 @@
+import 'package:city_guide_app/features/custom_places/domain/entity/custom_place.dart';
 import 'package:city_guide_app/features/custom_places/domain/use_cases/create_custom_place_usecase.dart';
 import 'package:city_guide_app/features/custom_places/presentation/view_model/custom_place_form_state.dart';
+import 'package:city_guide_app/features/favorites/domain/use_cases/toggle_favorite_usecase.dart';
 import 'package:city_guide_app/shared/domain/geo_point.dart';
 import 'package:city_guide_app/shared/domain/place_category.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class CustomPlaceFormCubit extends Cubit<CustomPlaceFormState> {
-  CustomPlaceFormCubit(this._createCustomPlace, GeoPoint initialLocation)
-      : super(CustomPlaceFormState(location: initialLocation));
+  CustomPlaceFormCubit(
+    this._createCustomPlace,
+    this._toggleFavorite,
+    GeoPoint initialLocation,
+  ) : super(CustomPlaceFormState(location: initialLocation));
 
   final CreateCustomPlaceUseCase _createCustomPlace;
+  final ToggleFavoriteUseCase _toggleFavorite;
 
   void updateLocation(GeoPoint location) =>
       emit(state.copyWith(location: location));
@@ -32,9 +38,12 @@ class CustomPlaceFormCubit extends Cubit<CustomPlaceFormState> {
       address: state.address.trim().isEmpty ? null : state.address.trim(),
       note: state.note.trim().isEmpty ? null : state.note.trim(),
     );
-    result.fold(
-      onSuccess: (_) => emit(state.copyWith(isSaving: false, saved: true)),
-      onFailure: (failure) => emit(
+    await result.fold(
+      onSuccess: (CustomPlace place) async {
+        await _toggleFavorite(place.toPlaceSummary(), isFavorite: false);
+        emit(state.copyWith(isSaving: false, saved: true));
+      },
+      onFailure: (failure) async => emit(
         state.copyWith(isSaving: false, errorMessage: failure.message),
       ),
     );

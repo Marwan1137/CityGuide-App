@@ -10,6 +10,7 @@ extension CustomPlaceMapping on CustomPlace {
     category: category,
     location: location,
     address: address,
+    note: note,
   );
 }
 
