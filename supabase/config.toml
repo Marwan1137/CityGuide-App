@@ -1,0 +1,10 @@
+project_id = "cwqewqnyeamsjjkuhdht"
+
+[functions.geocode-city]
+verify_jwt = false
+
+[functions.places-nearby]
+verify_jwt = false
+
+[functions.places-details]
+verify_jwt = false
